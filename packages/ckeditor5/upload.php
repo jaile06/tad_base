@@ -1,7 +1,9 @@
 <?php
 // CK5 上傳：編輯器貼上／拖曳圖片（SimpleUploadAdapter）、選檔器上傳、外站圖片轉存（?url=）
 // 參數 type=image|file、path=子資料夾；回傳 {url, name} 或 {error:{message}}
-// 存到 uploads/{mod_dir}/{type}/{subDir}/{path}/，保留原檔名（點與特殊字元換成底線），同名自動加編號
+// 存到 uploads/{mod_dir}/{type}/{subDir}/{path}/，保留原檔名（點與特殊字元換成底線）
+// 同名時依 conflict 參數：（未給）自動加編號；ask 回 409 {conflict:{name, can_replace}} 不存檔；
+// rename 自動加編號；replace 覆蓋舊檔（網址不變，限模組管理員，模組附件不可覆蓋）
 use Xmf\Request;
 
 require __DIR__ . '/common.php';
@@ -161,7 +163,22 @@ if (isset($_FILES['upload'])) {
     if (!$ext) {
         ck5_fail('只接受 JPG、PNG、GIF、WebP、AVIF 圖片');
     }
-    $name = ck5_unique_name($dir, $base, $ext);
+    $name     = "{$base}.{$ext}";
+    $conflict = Request::getString('conflict');
+    if (file_exists($dir . $name)) {
+        $can_replace = is_file($dir . $name) && ck5_can_manage() && !ck5_is_locked($dir . $name);
+        if ($conflict === 'ask') {
+            http_response_code(409);
+            die(json_encode(['conflict' => ['name' => $name, 'can_replace' => $can_replace]], JSON_UNESCAPED_UNICODE));
+        }
+        if ($conflict === 'replace') {
+            if (!$can_replace) {
+                ck5_fail(ck5_can_manage() ? '這是模組附件，不可覆蓋' : '只有模組管理員可以取代舊檔', 403);
+            }
+        } else {
+            $name = ck5_unique_name($dir, $base, $ext);
+        }
+    }
     if (!move_uploaded_file($file['tmp_name'], $dir . $name)) {
         ck5_fail('存檔失敗', 500);
     }

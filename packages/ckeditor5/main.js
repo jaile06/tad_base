@@ -337,15 +337,51 @@ function openBrowser(browseUrl, type, title, onPick) {
 
 	async function upload(files) {
 		const errors = [];
+		let always = null; // 勾了「其餘同名檔案也這樣處理」時記住選擇
 		for (const [i, file] of files.entries()) {
 			status.textContent = `上傳中 ${i + 1}/${files.length}：${file.name}`;
-			const res = await request('upload.php', formData({ upload: file }));
+			let res = await request('upload.php', formData({ upload: file, conflict: 'ask' }));
+			if (res.conflict) {
+				let choice = always;
+				if (!choice || (choice === 'replace' && !res.conflict.can_replace)) {
+					[choice, always] = await askConflict(res.conflict, files.length - i > 1);
+				}
+				if (choice === 'skip') {
+					continue;
+				}
+				res = await request('upload.php', formData({ upload: file, conflict: choice }));
+			}
 			if (res.error) {
 				errors.push(`${file.name}：${res.error.message || res.error}`);
 			}
 		}
 		await load(path);
 		status.textContent = errors.join('；');
+	}
+
+	// 同名檔案：取代（網址不變，文章連結自動指向新檔）／另存新檔（加編號）／略過；回傳 [選擇, 是否套用到其餘]
+	function askConflict({ name, can_replace }, hasMore) {
+		return new Promise(resolve => {
+			const applyAll = el('input', { type: 'checkbox' });
+			const box = el('dialog', { className: 'ck5-browser-move', ariaLabel: '檔名重複' },
+				el('form', { method: 'dialog' },
+					el('p', { textContent: `這個資料夾已經有「${name}」。` }),
+					el('p', { className: 'ck5-browser-hint', textContent: can_replace
+						? '取代：舊檔換成新檔，網址不變，已插入文章的連結會直接顯示新檔（瀏覽器可能要重新整理才看得到）。'
+						: '只有模組管理員可以取代舊檔，模組附件也不可取代。' }),
+					...(hasMore ? [el('label', {}, applyAll, ' 其餘同名檔案也這樣處理')] : []),
+					el('div', { className: 'ck5-browser-buttons' },
+						el('button', { value: 'skip', textContent: '略過' }),
+						el('button', { value: 'rename', textContent: '另存新檔' }),
+						...(can_replace ? [el('button', { value: 'replace', textContent: '取代舊檔' })] : []))));
+			box.addEventListener('close', () => {
+				box.remove();
+				const choice = box.returnValue || 'skip'; // Esc 視為略過
+				resolve([choice, applyAll.checked ? choice : null]);
+			});
+			document.body.append(box);
+			box.showModal();
+		});
 	}
 
 	fileInput.addEventListener('change', () => { upload([...fileInput.files]); fileInput.value = ''; });
