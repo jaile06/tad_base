@@ -29,35 +29,160 @@
 	line-height: 1;
 	cursor: pointer;
 }
+.ck5-browser.is-dragover {
+	outline: 4px dashed #0d6efd;
+	outline-offset: -8px;
+}
+.ck5-browser-tools {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: .5rem;
+	padding: .5rem 1rem;
+	border-bottom: 1px solid #eee;
+	position: sticky;
+	top: 3rem;
+	background: #fff;
+	z-index: 1;
+}
+.ck5-browser-tools > button {
+	padding: .25rem .75rem;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	background: #f8f9fa;
+	cursor: pointer;
+}
+.ck5-browser-crumbs {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+.ck5-browser-crumbs button {
+	border: 0;
+	background: none;
+	padding: 0 .2rem;
+	color: #0d6efd;
+	cursor: pointer;
+}
+.ck5-browser-crumbs button:last-child {
+	color: inherit;
+	font-weight: bold;
+}
+.ck5-browser-status {
+	flex-basis: 100%;
+	font-size: .85rem;
+	color: #b02a37;
+}
+.ck5-browser-status:empty {
+	display: none;
+}
 .ck5-browser-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 	gap: .75rem;
 	padding: 1rem;
 }
-.ck5-browser-grid button {
+.ck5-browser-item {
+	position: relative;
+	min-width: 0;
+}
+.ck5-browser-item > button:first-child {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	gap: .25rem;
+	width: 100%;
 	padding: .5rem;
 	border: 1px solid #ddd;
 	border-radius: 6px;
 	background: #fff;
 	cursor: pointer;
-	min-width: 0;
 }
-.ck5-browser-grid button:hover,
-.ck5-browser-grid button:focus-visible {
+.ck5-browser-item > button:first-child:hover,
+.ck5-browser-item > button:first-child:focus-visible {
 	border-color: #0d6efd;
 	outline: 2px solid #0d6efd;
 }
-.ck5-browser-grid img {
+.ck5-browser-actions {
+	position: absolute;
+	top: 4px;
+	right: 4px;
+	display: flex;
+	gap: 2px;
+}
+.ck5-browser-actions button {
+	width: 1.7rem;
+	height: 1.7rem;
+	border: 0;
+	border-radius: 50%;
+	background: rgba(33, 37, 41, .75);
+	color: #fff;
+	line-height: 1;
+	cursor: pointer;
+}
+.ck5-browser-actions button:last-child {
+	background: rgba(176, 42, 55, .85);
+}
+.ck5-browser-lock {
+	position: absolute;
+	top: 6px;
+	right: 8px;
+	cursor: help;
+}
+/* 有滑鼠時才隱藏到 hover，觸控裝置一直顯示 */
+@media (hover: hover) {
+	.ck5-browser-actions {
+		opacity: 0;
+	}
+	.ck5-browser-item:hover .ck5-browser-actions,
+	.ck5-browser-actions:focus-within {
+		opacity: 1;
+	}
+}
+.ck5-browser-move {
+	width: min(420px, 90vw);
+	border: 1px solid #ccc;
+	border-radius: 8px;
+}
+.ck5-browser-move select {
+	width: 100%;
+	padding: .25rem;
+}
+.ck5-browser-hint {
+	font-size: .85rem;
+	color: #6c757d;
+}
+.ck5-browser-buttons {
+	display: flex;
+	justify-content: flex-end;
+	gap: .5rem;
+}
+.ck5-browser-buttons button {
+	padding: .25rem 1rem;
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	background: #f8f9fa;
+	cursor: pointer;
+}
+.ck5-browser-buttons button[value="ok"] {
+	background: #0d6efd;
+	border-color: #0d6efd;
+	color: #fff;
+}
+.ck5-browser-grid img,
+.ck5-browser-icon {
 	width: 100%;
 	height: 100px;
 	object-fit: contain;
 }
-.ck5-browser-grid span {
+.ck5-browser-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 2.5rem;
+	font-weight: bold;
+	color: #6c757d;
+}
+.ck5-browser-item span:not(.ck5-browser-icon) {
 	font-size: .8rem;
 	max-width: 100%;
 	overflow: hidden;

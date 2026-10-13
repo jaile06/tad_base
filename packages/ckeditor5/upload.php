@@ -1,30 +1,18 @@
 <?php
-// CK5 圖片上傳（SimpleUploadAdapter）與外站圖片轉存（?url=）
-// 回傳 {url} 或 {error:{message}}；存到 uploads/{mod_dir}/image/{subDir}/
+// CK5 上傳：編輯器貼上／拖曳圖片（SimpleUploadAdapter）、選檔器上傳、外站圖片轉存（?url=）
+// 參數 type=image|file、path=子資料夾；回傳 {url, name} 或 {error:{message}}
+// 存到 uploads/{mod_dir}/{type}/{subDir}/{path}/，保留原檔名（點與特殊字元換成底線），同名自動加編號
 use Xmf\Request;
 
-require_once dirname(__DIR__, 4) . '/mainfile.php';
-header('Content-Type: application/json; charset=utf-8');
+require __DIR__ . '/common.php';
 
 const CK5_MAX_WIDTH  = 1920;       // 超過此寬度的圖片等比縮小（像素），要調就改這裡
 const CK5_MAX_PIXELS = 40000000;   // 超過 4000 萬像素不處理，避免 GD 吃光記憶體
-
-function ck5_fail($message, $code = 400)
-{
-    http_response_code($code);
-    die(json_encode(['error' => ['message' => $message]], JSON_UNESCAPED_UNICODE));
-}
-
-function ck5_same_site($url)
-{
-    $a = parse_url((string) $url);
-    $b = parse_url(XOOPS_URL);
-    $port = fn($p) => $p['port'] ?? (strtolower($p['scheme'] ?? '') === 'https' ? 443 : 80);
-    return !empty($a['host']) && !empty($b['host'])
-    && strtolower($a['scheme'] ?? '') === strtolower($b['scheme'])
-    && strtolower($a['host']) === strtolower($b['host'])
-    && $port($a) === $port($b);
-}
+// 一般檔案的副檔名白名單（不收 php、html、svg、js 等可執行或可夾帶 script 的格式）
+const CK5_FILE_EXT = [
+    'pdf', 'txt', 'csv', 'rtf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp',
+    'zip', '7z', 'rar', 'mp3', 'm4a', 'wav', 'ogg', 'mp4', 'webm', 'jpg', 'jpeg', 'png', 'gif', 'webp',
+];
 
 // 以內容判斷圖片格式，副檔名由格式決定（不信任原始檔名）；不收 SVG（可夾帶 script）
 function ck5_image_ext($info)
@@ -149,37 +137,32 @@ function ck5_fetch_remote($url, $maxBytes)
     return $data;
 }
 
-if (!$xoopsUser) {
-    ck5_fail('請先登入', 403);
+ck5_require_same_origin();
+$fallback = date('YmdHis_') . bin2hex(random_bytes(4));
+$dir      = ck5_current_dir(true);
+if ($dir === false) {
+    ck5_fail('路徑錯誤');
 }
-// 只接受本站發出的請求（Origin 優先，沒有才看 Referer）
-$from = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '';
-if (!ck5_same_site($from)) {
-    ck5_fail('非法調用', 403);
-}
-
-$mod_dir = Request::getString('mod_dir');
-$subDir  = trim(str_replace('\\', '/', Request::getString('subDir')), '/');
-if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $mod_dir) || !preg_match('/^[a-zA-Z0-9_\-\/]*$/', $subDir) || strpos($subDir, '..') !== false) {
-    ck5_fail('參數錯誤');
-}
-$rel = "/uploads/{$mod_dir}/image/" . ($subDir === '' ? '' : "{$subDir}/");
-$dir = XOOPS_ROOT_PATH . $rel;
-if (!is_dir($dir) && !mkdir($dir, 0755, true)) {
-    ck5_fail('無法建立上傳目錄', 500);
-}
-$name = date('YmdHis_') . bin2hex(random_bytes(4));
 
 if (isset($_FILES['upload'])) {
     $file = $_FILES['upload'];
     if ($file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
-        ck5_fail('上傳失敗');
+        ck5_fail($file['error'] === UPLOAD_ERR_INI_SIZE ? '檔案超過伺服器上傳大小限制' : '上傳失敗');
     }
+    $base = ck5_clean_name(pathinfo($file['name'], PATHINFO_FILENAME), $fallback);
+    // 圖片：副檔名由內容判斷；一般檔案：白名單
     $ext = ck5_image_ext(@getimagesize($file['tmp_name']));
+    if ($ck5_type === 'file' && !$ext) {
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, CK5_FILE_EXT, true)) {
+            ck5_fail('不接受 .' . $ext . ' 檔案');
+        }
+    }
     if (!$ext) {
         ck5_fail('只接受 JPG、PNG、GIF、WebP、AVIF 圖片');
     }
-    if (!move_uploaded_file($file['tmp_name'], "{$dir}{$name}.{$ext}")) {
+    $name = ck5_unique_name($dir, $base, $ext);
+    if (!move_uploaded_file($file['tmp_name'], $dir . $name)) {
         ck5_fail('存檔失敗', 500);
     }
 } elseif (($url = Request::getString('url')) !== '') {
@@ -191,13 +174,14 @@ if (isset($_FILES['upload'])) {
     if (!$ext) {
         ck5_fail('外站檔案不是支援的圖片');
     }
-    if (file_put_contents("{$dir}{$name}.{$ext}", $data, LOCK_EX) === false) {
+    $name = ck5_unique_name($dir, ck5_clean_name(pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_FILENAME), $fallback), $ext);
+    if (file_put_contents($dir . $name, $data, LOCK_EX) === false) {
         ck5_fail('存檔失敗', 500);
     }
 } else {
     ck5_fail('沒有收到檔案');
 }
 
-ck5_resize("{$dir}{$name}.{$ext}", $ext);
-chmod("{$dir}{$name}.{$ext}", 0644);
-echo json_encode(['url' => XOOPS_URL . "{$rel}{$name}.{$ext}"], JSON_UNESCAPED_SLASHES);
+ck5_resize($dir . $name, $ext);
+chmod($dir . $name, 0644);
+echo json_encode(['url' => ck5_url($name), 'name' => $name], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
