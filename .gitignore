@@ -1,0 +1,2 @@
+# CK5 的 sourcemap（26MB，正式站用不到）
+packages/ckeditor5/*.map

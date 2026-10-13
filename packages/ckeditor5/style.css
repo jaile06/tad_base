@@ -1,0 +1,77 @@
+.ck-editor__editable_inline {
+	min-height: var(--ck5-height, 300px);
+}
+
+.ck5-browser {
+	width: min(900px, 95vw);
+	max-height: 85vh;
+	padding: 0;
+	border: 1px solid #ccc;
+	border-radius: 8px;
+}
+.ck5-browser::backdrop {
+	background: rgba(0, 0, 0, .4);
+}
+.ck5-browser-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding: .5rem 1rem;
+	border-bottom: 1px solid #ddd;
+	position: sticky;
+	top: 0;
+	background: #fff;
+}
+.ck5-browser-header button {
+	border: 0;
+	background: none;
+	font-size: 1.5rem;
+	line-height: 1;
+	cursor: pointer;
+}
+.ck5-browser-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+	gap: .75rem;
+	padding: 1rem;
+}
+.ck5-browser-grid button {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: .25rem;
+	padding: .5rem;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	background: #fff;
+	cursor: pointer;
+	min-width: 0;
+}
+.ck5-browser-grid button:hover,
+.ck5-browser-grid button:focus-visible {
+	border-color: #0d6efd;
+	outline: 2px solid #0d6efd;
+}
+.ck5-browser-grid img {
+	width: 100%;
+	height: 100px;
+	object-fit: contain;
+}
+.ck5-browser-grid span {
+	font-size: .8rem;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ck-word-count {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--ck-spacing-small);
+	padding: var(--ck-spacing-small) var(--ck-spacing-standard);
+	font-size: var(--ck-font-size-base);
+	color: var(--ck-color-text);
+	border: 1px solid var(--ck-color-base-border);
+	border-top: none;
+}

@@ -1,0 +1,215 @@
+ol.big-tw {
+  counter-reset: big-tw-list;
+  list-style-type: trad-chinese-formal;
+  margin-left: 2rem;
+}
+ol.big-tw li {
+  list-style-type: none;
+  position: relative;
+}
+ol.big-tw li::before {
+  counter-increment: big-tw-list;
+  content: counter(big-tw-list, trad-chinese-formal) "、";
+  position: absolute;
+  left: -2.5rem;
+}
+
+ol.small-tw {
+  counter-reset: small-tw-list;
+  list-style-type: cjk-ideographic;
+  margin-left: 2rem;
+}
+ol.small-tw li {
+  list-style-type: none;
+  position: relative;
+}
+ol.small-tw li::before {
+  counter-increment: small-tw-list;
+  content: counter(small-tw-list, cjk-ideographic) "、";
+  position: absolute;
+  left: -2.5rem;
+}
+
+ol.brackets-tw {
+  counter-reset: brackets-tw-list;
+  margin-left: 1rem;
+}
+ol.brackets-tw li {
+  list-style-type: none;
+  position: relative;
+}
+ol.brackets-tw li:before {
+  counter-increment: brackets-tw-list;
+  content: "(" counter(brackets-tw-list, cjk-ideographic) ") ";
+  position: absolute;
+  left: -2.5rem;
+}
+
+ol.dot-num {
+  counter-reset: dot-num-list;
+  /* margin-left: 2rem; */
+}
+ol.dot-num li {
+  list-style-type: none;
+  position: relative;
+}
+ol.dot-num li:before {
+  counter-increment: dot-num-list;
+  content: counter(dot-num-list, decimal) ". ";
+  position: absolute;
+  left: -1.875rem;
+}
+
+ol.brackets-num {
+  counter-reset: brackets-num-list;
+  /* margin-left: 2rem; */
+}
+ol.brackets-num li {
+  list-style-type: none;
+  position: relative;
+}
+ol.brackets-num li:before {
+  counter-increment: brackets-num-list;
+  content: "(" counter(brackets-num-list, decimal) ") ";
+  position: absolute;
+  left: -1.875rem;
+}
+/*
+.img-box-1-5 img,
+.img-box-2 img,
+.img-box-3 img,
+.img-box-4 img {
+  transition: transform 0.25s ease;
+}
+
+.img-box-1-5 img:hover {
+  -webkit-transform: scale(1.5);
+  transform: scale(1.5);
+}
+.img-box-2 img:hover {
+  -webkit-transform: scale(2);
+  transform: scale(2);
+}
+.img-box-3 img:hover {
+  -webkit-transform: scale(3);
+  transform: scale(3);
+}
+.img-box-4 img:hover {
+  -webkit-transform: scale(24);
+  transform: scale(4);
+}
+ */
+
+/* .cke_dialog {
+  z-index: 10055 !important;
+}
+
+.ck-body-wrapper {
+  position: fixed;
+  z-index: 1300;
+} */
+
+/* 清除 Bootstrap 的 list 樣式干擾 */
+.my-list, .my-list ol, .my-list li {
+  list-style: none !important;
+  margin: 0;
+  padding-left: 0em !important;
+}
+
+/* 第一層 */
+.my-list {
+  counter-reset: level1;
+}
+.my-list > li {
+  counter-increment: level1;
+}
+.my-list > li::before {
+  content: counter(level1) ". ";
+  font-weight: normal;
+  margin-right: 0.5em;
+}
+
+/* 第二層 */
+.my-list > li > ol {
+  counter-reset: level2;
+  padding-left: 0em !important;
+}
+.my-list > li > ol > li {
+  counter-increment: level2;
+}
+.my-list > li > ol > li::before {
+  content: "(" counter(level2) ") ";
+  font-style: normal;
+  margin-right: 0.5em;
+}
+
+/* 第三層 */
+.my-list > li > ol > li > ol {
+  counter-reset: level3;
+  padding-left: 0em !important;
+}
+.my-list > li > ol > li > ol > li {
+  counter-increment: level3;
+}
+.my-list > li > ol > li > ol > li::before {
+  content: counter(level3, upper-alpha) ". ";
+  text-decoration: none;
+  margin-right: 0.5em;
+}
+
+/* 清除 Bootstrap 的 list 樣式干擾 */
+.paper-list, .paper-list ol, .paper-list li {
+  list-style: none !important;
+  margin: 0;
+  padding-left: 0em !important;
+}
+
+/* 第一層 */
+.paper-list {
+  counter-reset: paper-level1;
+  list-style-type: cjk-ideographic;
+  margin-left: 2rem;
+}
+.paper-list > li {
+  counter-increment: paper-level1;
+  list-style-type: none;
+  position: relative;
+}
+.paper-list > li::before {
+  content: counter(paper-level1, cjk-ideographic) "、";
+  font-weight: normal;
+  position: absolute;
+  left: -2.5rem;
+}
+
+/* 第二層 - 往右縮排2個字元 */
+.paper-list > li > ol {
+  counter-reset: paper-level2;
+  padding-left: 2em !important; /* 修改：增加2em的縮排 */
+}
+.paper-list > li > ol > li {
+  counter-increment: paper-level2;
+  position: relative; /* 新增：確保相對定位 */
+}
+.paper-list > li > ol > li::before {
+  content: "(" counter(paper-level2, cjk-ideographic) ") ";
+  font-style: normal;
+  position: absolute; /* 新增：絕對定位 */
+  left: -2.5em; /* 新增：調整位置 */
+}
+
+/* 第三層 - 往右縮排4個字元 */
+.paper-list > li > ol > li > ol {
+  counter-reset: paper-level3;
+  padding-left: 2em !important; /* 修改：增加2em的縮排 */
+}
+.paper-list > li > ol > li > ol > li {
+  counter-increment: paper-level3;
+  position: relative; /* 新增：確保相對定位 */
+}
+.paper-list > li > ol > li > ol > li::before {
+  content: counter(paper-level3) "、";
+  text-decoration: none;
+  position: absolute; /* 新增：絕對定位 */
+  left: -2em; /* 新增：調整位置 */
+}
