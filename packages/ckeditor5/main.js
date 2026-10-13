@@ -436,7 +436,6 @@ export function createEditor(element, { uploadUrl, browseUrl, remoteImageUrl, pl
 		language: 'zh',
 		translations: [translations],
 		toolbar: { items: toolbars[toolbar] || toolbars.full, shouldNotGroupWhenFull: true },
-		menuBar: { isVisible: toolbar === 'full' },
 		placeholder,
 		plugins: [
 			Alignment, Autoformat, AutoImage, AutoLink, Autosave, BlockQuote, Bold, Code, CodeBlock, Essentials,
