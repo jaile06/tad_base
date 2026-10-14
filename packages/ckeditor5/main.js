@@ -77,6 +77,8 @@ import {
 	UIModel,
 	addListToDropdown,
 	createDropdown,
+	toWidget,
+	toWidgetEditable,
 	IconBrowseFiles,
 	IconImage,
 	IconLink,
@@ -189,7 +191,7 @@ function TextDropdowns(editor) {
 }
 
 // 取代 CK4 widgetbootstrap／widgettemplatemenu：插入同樣的 Bootstrap 多欄 HTML，舊文章的版型也能照常編輯
-// ponytail: 不做 widget，插入後就是一般 div（由 GeneralHtmlSupport 保留），要刪整個版型從原始碼刪
+// 版型是 widget（同 CK4）：點外框可整組選取、按 Delete 整組刪除，各欄內容可直接編輯
 const PLACEHOLDER = 'https://fakeimg.pl/{size}/?retina=1&font=noto&text=%E6%94%BE%E7%BD%AE%E5%9C%96%E7%89%87';
 const column = (cls, img, text) => `<div class="${cls}">${img ? `<img src="${PLACEHOLDER.replace('{size}', img)}" class="img-responsive img-fluid">` : ''}${text ? `<p>${text}</p>` : ''}</div>`;
 const columns = (n, img) => Array.from({ length: n }, (_, i) => column(`col-sm-${12 / n} span${12 / n} coln-${i + 1}`, img, n === 2 ? '輸入內容' : '輸入文字')).join('');
@@ -204,6 +206,45 @@ const columnTemplates = [
 	['新增 6 欄', `<div class="row six-col">${columns(6, '400x225')}</div>`]
 ];
 const IconColumns = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2 3h4.5v14H2zm5.75 0h4.5v14h-4.5zM13.5 3H18v14h-4.5z"/></svg>';
+
+// 同 CK4 upcast：只有這幾種 class 的 div.row 視為版型，其他 div 仍交給 GeneralHtmlSupport
+const ROW_CLASSES = ['two-col-left', 'two-col-right', 'two-col', 'three-col', 'four-col', 'six-col'];
+const isRow = v => v?.is?.('element', 'div') && v.hasClass('row') && ROW_CLASSES.some(c => v.hasClass(c));
+
+function ColumnWidget(editor) {
+	const { schema } = editor.model;
+	const { conversion } = editor;
+	schema.register('bsRow', { inheritAllFrom: '$blockObject', allowAttributes: ['htmlAttrs'] });
+	schema.register('bsCol', { allowIn: 'bsRow', allowContentOf: '$root', isLimit: true, allowAttributes: ['htmlAttrs'] });
+
+	// div 的所有屬性（class、style、id…）原樣存起來，輸出時還原
+	[['bsRow', isRow], ['bsCol', v => isRow(v.parent)]].forEach(([name, match]) => {
+		conversion.for('upcast').add(dispatcher => dispatcher.on('element:div', (evt, data, api) => {
+			const view = data.viewItem;
+			if (!match(view) || !api.consumable.test(view, { name: true })) {
+				return;
+			}
+			const element = api.writer.createElement(name, { htmlAttrs: Object.fromEntries(view.getAttributes()) });
+			if (!api.safeInsert(element, data.modelCursor)) {
+				return;
+			}
+			api.consumable.consume(view, { name: true });
+			api.convertChildren(view, element);
+			api.updateConversionResult(element, data);
+		}, { priority: 'high' }));
+	});
+	const attrs = model => model.getAttribute('htmlAttrs') || {};
+	conversion.for('dataDowncast').elementToElement({ model: 'bsRow', view: (m, { writer }) => writer.createContainerElement('div', attrs(m)) });
+	conversion.for('dataDowncast').elementToElement({ model: 'bsCol', view: (m, { writer }) => writer.createContainerElement('div', attrs(m)) });
+	conversion.for('editingDowncast').elementToElement({
+		model: 'bsRow',
+		view: (m, { writer }) => toWidget(writer.createContainerElement('div', attrs(m)), writer, { label: '多欄版型', hasSelectionHandle: true })
+	});
+	conversion.for('editingDowncast').elementToElement({
+		model: 'bsCol',
+		view: (m, { writer }) => toWidgetEditable(writer.createEditableElement('div', attrs(m)), writer)
+	});
+}
 
 function ColumnTemplates(editor) {
 	editor.ui.componentFactory.add('columnTemplates', locale => {
@@ -1246,7 +1287,7 @@ export function createEditor(element, { uploadUrl, browseUrl, remoteImageUrl, pl
 			SimpleUploadAdapter, SourceEditing, Strikethrough, Style, Subscript, Superscript, Table, TableCaption,
 			TableCellProperties, TableColumnResize, TableLayout, TableProperties, TableToolbar, TextTransformation,
 			TodoList, Underline, WordCount, PageBreak,
-			BootstrapTable, FileBrowser, ImageDialog, LinkDialog, PasteRemoteImage, PlainTextPaste, FontAwesome, TextDropdowns, ColumnTemplates
+			BootstrapTable, FileBrowser, ImageDialog, LinkDialog, PasteRemoteImage, PlainTextPaste, FontAwesome, TextDropdowns, ColumnWidget, ColumnTemplates
 		],
 		// 取代 CK4 embed/embedsemantic：直接輸出 iframe，前台不需額外 JS
 		mediaEmbed: { previewsInData: true },
