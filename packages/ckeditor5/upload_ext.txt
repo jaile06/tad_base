@@ -1,0 +1,15 @@
+# CK5 選檔器「檔案」區可上傳的副檔名（「圖片」區固定只收 JPG、PNG、GIF、WebP、AVIF，不受此檔影響）
+# 用空白、逗號或換行分隔，大小寫不拘，# 後面是註解；存檔後立即生效
+# 安全起見，php、html、js、svg、exe 等可執行或可夾帶 script 的格式即使寫在這裡也會被擋掉（見 upload.php 的 CK5_DENY_EXT）
+
+# 文件
+pdf txt csv rtf doc docx xls xlsx ppt pptx odt ods odp
+
+# 壓縮檔
+zip 7z rar
+
+# 影音
+mp3 m4a wav ogg mp4 webm
+
+# 圖片（當附件下載用）
+jpg jpeg png gif webp

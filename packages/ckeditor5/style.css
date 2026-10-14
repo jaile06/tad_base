@@ -1,5 +1,465 @@
+/* 同 CK4 baseFloatZIndex：編輯器在 Bootstrap modal 裡時，下拉選單、連結框不會被蓋住 */
+:root {
+	--ck-z-panel: 100001;
+}
+
 .ck-editor__editable_inline {
 	min-height: var(--ck5-height, 300px);
+}
+
+/* 仿 CK4 moono：灰色漸層工具列、分隔線明顯，舊使用者較熟悉 */
+.ck.ck-editor__top .ck-toolbar {
+	background: linear-gradient(#f9f9f9, #e3e3e3);
+	border-color: #b6b6b6;
+}
+.ck.ck-editor__top .ck-toolbar .ck-toolbar__separator {
+	background: #b6b6b6;
+}
+.ck.ck-editor__main > .ck-editor__editable:not(.ck-focused) {
+	border-color: #b6b6b6;
+}
+
+/* 字型、大小下拉顯示文字，固定寬度避免切換時工具列跳動 */
+.ck5-text-dropdown .ck-button__label {
+	width: 6em;
+}
+/* 字型清單很長，限制高度可捲動 */
+.ck.ck-font-family-dropdown .ck-dropdown__panel .ck-list {
+	max-height: 60vh;
+	overflow-y: auto;
+}
+
+/* 選檔器（仿 elFinder）：灰色工具列、左側樹、下方狀態列 */
+.ck5-fm {
+	width: min(1000px, 96vw);
+	height: min(640px, 90vh);
+	max-height: none;
+	overflow: hidden;
+}
+.ck5-fm[open] {
+	display: flex;
+	flex-direction: column;
+}
+.ck5-fm .ck5-browser-header {
+	position: static;
+	background: linear-gradient(#f9f9f9, #e3e3e3);
+}
+.ck5-fm-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px;
+	padding: 4px 6px;
+	border-bottom: 1px solid #c4c4c4;
+	background: linear-gradient(#f4f4f4, #e2e2e2);
+}
+.ck5-fm-group {
+	display: flex;
+	border: 1px solid #c4c4c4;
+	border-radius: 3px;
+	background: #fafafa;
+}
+.ck5-fm-group button {
+	width: 28px;
+	height: 26px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: #3a6ea5;
+	cursor: pointer;
+}
+.ck5-fm-group button + button {
+	border-left: 1px solid #e0e0e0;
+}
+.ck5-fm-group button:hover:not(:disabled) {
+	background: #dde9f6;
+}
+.ck5-fm-group button:disabled {
+	color: #bbb;
+	cursor: default;
+}
+.ck5-fm-group button[aria-pressed="true"] {
+	background: #cfe0f3;
+}
+.ck5-fm-search {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-left: auto;
+	padding: 0 6px;
+	border: 1px solid #c4c4c4;
+	border-radius: 12px;
+	background: #fff;
+	color: #888;
+}
+.ck5-fm-search input {
+	width: 9rem;
+	border: 0;
+	outline: 0;
+	padding: 3px 0;
+}
+.ck5-fm-body {
+	display: grid;
+	grid-template-columns: 220px 1fr;
+	flex: 1 1 auto;
+	min-height: 0;
+}
+.ck5-fm-tree {
+	overflow: auto;
+	padding: 6px 0;
+	border-right: 1px solid #c4c4c4;
+	background: #dde4ec;
+}
+.ck5-fm-tree ul {
+	list-style: none;
+	margin: 0;
+	padding-left: 14px;
+}
+.ck5-fm-tree > ul {
+	padding-left: 4px;
+}
+.ck5-fm-tree button {
+	display: block;
+	width: 100%;
+	padding: 3px 8px;
+	border: 0;
+	border-radius: 3px;
+	background: none;
+	text-align: left;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	cursor: pointer;
+}
+.ck5-fm-tree button:hover {
+	background: #c9d6e4;
+}
+.ck5-fm-tree button.is-current {
+	background: #3d7bd9;
+	color: #fff;
+}
+.ck5-fm-tree .fa-folder {
+	color: #e8b443;
+}
+.ck5-fm-tree button.is-current i {
+	color: #fff;
+}
+.ck5-fm-main {
+	overflow: auto;
+	background: #fff;
+}
+.ck5-fm-icons {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+	gap: 6px;
+	padding: 10px;
+}
+.ck5-fm-icons .ck5-fm-item {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	min-width: 0;
+	padding: 6px 4px;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: none;
+	cursor: pointer;
+}
+.ck5-fm-icons .ck5-fm-item img,
+.ck5-fm-icons .ck5-fm-icon {
+	width: 80px;
+	height: 64px;
+	object-fit: contain;
+}
+.ck5-fm-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 48px;
+	color: #e8b443;
+}
+.ck5-fm-ext {
+	font-size: 1rem;
+	font-weight: bold;
+	color: #fff;
+	background: #6c8cb5;
+	border-radius: 4px;
+}
+.ck5-fm-name {
+	max-width: 100%;
+	font-size: .8rem;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.ck5-fm-lock {
+	position: absolute;
+	top: 4px;
+	right: 6px;
+	color: #b02a37;
+}
+.ck5-fm-list .ck5-fm-lock {
+	position: static;
+	margin-left: .4rem;
+}
+/* Shift 範圍選取時不要反白文字 */
+.ck5-fm-item {
+	user-select: none;
+}
+.ck5-fm-main:focus {
+	outline: none;
+}
+.ck5-fm-item:hover {
+	background: #eef4fb;
+}
+.ck5-fm-icons .ck5-fm-item.is-selected,
+.ck5-fm-list .ck5-fm-item.is-selected {
+	background: #cfe0f3;
+	border-color: #8fb3df;
+}
+.ck5-fm-list {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: .85rem;
+}
+.ck5-fm-list th {
+	position: sticky;
+	top: 0;
+	padding: 4px 8px;
+	border-bottom: 1px solid #c4c4c4;
+	background: linear-gradient(#f9f9f9, #e3e3e3);
+	text-align: left;
+	font-weight: normal;
+}
+.ck5-fm-list td {
+	padding: 3px 8px;
+	border-bottom: 1px solid #f0f0f0;
+	white-space: nowrap;
+}
+.ck5-fm-list tr.ck5-fm-item {
+	cursor: pointer;
+}
+.ck5-fm-list .fa-folder {
+	color: #e8b443;
+}
+.ck5-fm-empty {
+	padding: 1rem;
+	color: #6c757d;
+}
+.ck5-fm-statusbar {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 3px 8px;
+	border-top: 1px solid #c4c4c4;
+	background: linear-gradient(#f4f4f4, #e2e2e2);
+	font-size: .8rem;
+}
+.ck5-fm-message {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.ck5-fm-summary {
+	white-space: nowrap;
+}
+.ck5-fm-info th {
+	padding: 2px 1rem 2px 0;
+	text-align: left;
+	vertical-align: top;
+	white-space: nowrap;
+}
+.ck5-fm-info td {
+	word-break: break-all;
+}
+/* 手機：樹狀目錄縮到上方 */
+@media (max-width: 640px) {
+	.ck5-fm-body {
+		grid-template-columns: 1fr;
+		grid-template-rows: auto 1fr;
+	}
+	.ck5-fm-tree {
+		max-height: 30vh;
+		border-right: 0;
+		border-bottom: 1px solid #c4c4c4;
+	}
+	.ck5-fm-search {
+		margin-left: 0;
+	}
+}
+
+/* 影像屬性（仿 CK4 對話框） */
+.ck5-image-dialog {
+	width: min(560px, 95vw);
+}
+/* 面板用了 display:flex，hidden 屬性要明確隱藏，否則分頁切換無效 */
+.ck5-image-dialog [hidden] {
+	display: none !important;
+}
+/* 連結對話框 */
+.ck5-image-panel.ck5-link-panel {
+	gap: .9rem;
+	min-height: 0;
+}
+.ck5-link-protocol > .ck5-image-field:first-child {
+	flex: 0 0 7.5rem;
+}
+.ck5-image-dialog input[type=text],
+.ck5-image-dialog select,
+.ck5-image-dialog .ck5-image-row > button:not(.ck5-image-icon) {
+	min-height: 2.25rem;
+	line-height: 1.5;
+}
+/* 影像屬性：標題後接分頁 */
+.ck5-image-dialog .ck5-browser-tabs {
+	margin-left: 1.5rem;
+	margin-right: auto;
+}
+.ck5-image-dialog fieldset {
+	margin: 0;
+	padding: .5rem .75rem .75rem;
+	border: 1px solid #dee2e6;
+	border-radius: 4px;
+}
+.ck5-image-dialog legend {
+	float: none;
+	width: auto;
+	margin: 0;
+	padding: 0 .35rem;
+	font-size: .85rem;
+	font-weight: bold;
+}
+.ck5-link-check {
+	display: inline-flex;
+	align-items: center;
+	gap: .4rem;
+	cursor: pointer;
+}
+.ck5-image-panel {
+	display: flex;
+	flex-direction: column;
+	gap: .6rem;
+	padding: 1rem;
+	min-height: 22rem;
+}
+.ck5-image-field {
+	display: flex;
+	flex-direction: column;
+	gap: .2rem;
+	min-width: 0;
+}
+.ck5-image-field > span {
+	font-size: .85rem;
+}
+.ck5-image-field input,
+.ck5-image-field select {
+	padding: .25rem .4rem;
+	border: 1px solid #bbb;
+	border-radius: 3px;
+}
+.ck5-image-row {
+	display: flex;
+	align-items: flex-end;
+	gap: .5rem;
+}
+.ck5-image-row > .ck5-image-field {
+	flex: 1 1 auto;
+}
+.ck5-image-row > button,
+.ck5-image-panel > .ck5-image-row > button {
+	padding: .25rem .75rem;
+	border: 1px solid #bbb;
+	border-radius: 3px;
+	background: #f8f9fa;
+	cursor: pointer;
+	white-space: nowrap;
+}
+.ck5-image-row > .ck5-image-icon {
+	padding: .25rem .4rem;
+	border: 0;
+	background: none;
+}
+.ck5-image-columns {
+	display: grid;
+	grid-template-columns: 9rem 1fr;
+	gap: 1rem;
+}
+.ck5-image-sizes {
+	display: flex;
+	flex-direction: column;
+	gap: .4rem;
+}
+.ck5-image-sizes input {
+	width: 4.5rem;
+}
+.ck5-image-preview {
+	height: 16rem;
+	overflow: auto;
+	padding: .25rem;
+	border: 1px solid #bbb;
+	font-size: .8rem;
+}
+.ck5-image-preview img {
+	max-width: 100%;
+}
+.ck5-image-grid {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	align-content: start;
+	gap: .6rem;
+}
+.ck5-image-footer {
+	padding: .75rem 1rem;
+	border-top: 1px solid #ddd;
+	background: #f8f8f8;
+}
+
+/* FontAwesome 選圖示 */
+.ck5-fa-tools label {
+	display: inline-flex;
+	align-items: center;
+	gap: .25rem;
+	white-space: nowrap;
+}
+.ck5-fa-tools input[type="search"] {
+	flex: 1 1 14rem;
+	padding: .25rem .5rem;
+}
+.ck5-fa-tools input[type="number"] {
+	width: 4.5rem;
+}
+.ck5-fa-grid {
+	grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+	gap: .5rem;
+}
+.ck5-fa-grid button {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: .25rem;
+	min-width: 0;
+	padding: .5rem .25rem;
+	border: 1px solid #ddd;
+	border-radius: 6px;
+	background: #fff;
+	cursor: pointer;
+}
+.ck5-fa-grid button:hover,
+.ck5-fa-grid button:focus-visible {
+	border-color: #0d6efd;
+	outline: 2px solid #0d6efd;
+}
+.ck5-fa-grid button span:first-child {
+	font-size: 1.5rem;
+}
+.ck5-fa-grid button span:last-child {
+	font-size: .7rem;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .ck5-browser {
@@ -51,6 +511,28 @@
 	border-radius: 4px;
 	background: #f8f9fa;
 	cursor: pointer;
+}
+/* 標題列即分頁：選中的分頁底線標示 */
+.ck5-browser-tabs {
+	display: flex;
+	gap: .25rem;
+	align-self: stretch;
+	margin-bottom: calc(-.5rem - 1px);
+}
+.ck5-browser-header .ck5-browser-tabs button {
+	font-size: 1rem;
+	padding: .5rem 1rem;
+	border-bottom: 3px solid transparent;
+	color: #666;
+}
+.ck5-browser-header .ck5-browser-tabs button:hover {
+	color: #000;
+	background: #f3f6fa;
+}
+.ck5-browser-header .ck5-browser-tabs button[aria-selected="true"] {
+	color: #0d6efd;
+	border-bottom-color: #0d6efd;
+	font-weight: bold;
 }
 .ck5-browser-crumbs {
 	flex: 1 1 auto;

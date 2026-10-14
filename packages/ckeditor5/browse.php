@@ -4,7 +4,7 @@
 // POST op=…（name 為目前資料夾下的項目）：
 //   mkdir   name                 建子資料夾（登入者）
 //   refs    name                 統計引用筆數 {refs, locked}（模組管理員）
-//   tree                         所有子資料夾清單，搬移用（模組管理員）
+//   tree                         所有子資料夾清單，左側樹狀目錄用（登入者）
 //   rename  name new_name        改名並更新文章中的網址（模組管理員）
 //   move    name to              搬到 to（根目錄起算）並更新文章中的網址（模組管理員）
 //   delete  name                 刪檔案或整個資料夾（模組管理員）
@@ -17,7 +17,7 @@ $replaced = [];
 $op       = Request::getString('op', '', 'POST');
 if ($op !== '') {
     ck5_require_same_origin();
-    if ($op !== 'mkdir' && !ck5_can_manage()) {
+    if (!in_array($op, ['mkdir', 'tree'], true) && !ck5_can_manage()) {
         ck5_fail('只有模組管理員可以改名、搬移、刪除', 403);
     }
     $name = Request::getString('name', '', 'POST');

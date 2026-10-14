@@ -10,11 +10,21 @@ require __DIR__ . '/common.php';
 
 const CK5_MAX_WIDTH  = 1920;       // 超過此寬度的圖片等比縮小（像素），要調就改這裡
 const CK5_MAX_PIXELS = 40000000;   // 超過 4000 萬像素不處理，避免 GD 吃光記憶體
-// 一般檔案的副檔名白名單（不收 php、html、svg、js 等可執行或可夾帶 script 的格式）
-const CK5_FILE_EXT = [
-    'pdf', 'txt', 'csv', 'rtf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp',
-    'zip', '7z', 'rar', 'mp3', 'm4a', 'wav', 'ogg', 'mp4', 'webm', 'jpg', 'jpeg', 'png', 'gif', 'webp',
+// 可執行或可夾帶 script 的格式：就算寫進 upload_ext.txt 也不收
+const CK5_DENY_EXT = [
+    'php', 'php3', 'php4', 'php5', 'php7', 'php8', 'phtml', 'phar', 'pht', 'phps', 'inc',
+    'cgi', 'pl', 'py', 'rb', 'sh', 'bash', 'asp', 'aspx', 'jsp', 'jspx', 'cfm',
+    'html', 'htm', 'xhtml', 'shtml', 'svg', 'svgz', 'xml', 'xsl', 'js', 'mjs', 'swf', 'htaccess', 'htpasswd', 'ini',
+    'exe', 'com', 'bat', 'cmd', 'msi', 'scr', 'vbs', 'wsf', 'ps1', 'jar', 'dll',
 ];
+
+// 一般檔案的副檔名白名單，讀自同目錄 upload_ext.txt（空白、逗號、換行分隔，# 為註解）
+function ck5_file_ext()
+{
+    $text = str_replace("\xEF\xBB\xBF", '', (string) @file_get_contents(__DIR__ . '/upload_ext.txt')); // 記事本存檔可能帶 BOM
+    $exts = preg_split('/[\s,]+/', strtolower(preg_replace('/#.*/', '', $text)), -1, PREG_SPLIT_NO_EMPTY);
+    return array_diff(array_map(fn($e) => ltrim($e, '.'), $exts), CK5_DENY_EXT);
+}
 
 // 以內容判斷圖片格式，副檔名由格式決定（不信任原始檔名）；不收 SVG（可夾帶 script）
 function ck5_image_ext($info)
@@ -156,7 +166,7 @@ if (isset($_FILES['upload'])) {
     $ext = ck5_image_ext(@getimagesize($file['tmp_name']));
     if ($ck5_type === 'file' && !$ext) {
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if (!in_array($ext, CK5_FILE_EXT, true)) {
+        if ($ext === '' || !in_array($ext, ck5_file_ext(), true)) {
             ck5_fail('不接受 .' . $ext . ' 檔案');
         }
     }

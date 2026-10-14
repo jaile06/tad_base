@@ -21,10 +21,12 @@ class CkEditor5
     public $subDir      = '';
     public $placeholder = '';
     public $Modal_ID = '';
-    // ponytail: 以下為 CK4 相容屬性，CK5 不使用
+    // 搭配 tadtools 偏好設定 ck_wcag：兩者皆開時貼上一律轉純文字（同 CK4 forcePasteAsPlainText）
     public $wcag     = true;
+    public $Style    = [];
+    // ponytail: 以下為 CK4 相容屬性，CK5 不使用
     public $CustomConfigurationsPath;
-    public $Style = [];
+    public $demopublickey = '';
 
     public function __construct($xoopsDirName = '', $ColName = '', $Value = '', $subDir = '')
     {
@@ -35,10 +37,28 @@ class CkEditor5
         $this->subDir       = $subDir;
     }
 
-    //設定工具列（my 為完整，其餘為精簡）
+    //設定工具列（同 CK4：my、myBasic、tadBasic、mySimple、tadSimple，其餘視為 my）
     public function setToolbarSet($ToolbarSet = '')
     {
         $this->ToolbarSet = $ToolbarSet;
+    }
+
+    //新增樣式（同 CK4 介面）；CK5 樣式只支援 class，沒有 class 的項目略過
+    public function setStyle($name, $element, $attributes = [], $styles = [])
+    {
+        $this->Style[] = ['name' => $name, 'element' => $element, 'attributes' => $attributes, 'styles' => $styles];
+    }
+
+    //CK4 相容，CK5 不使用
+    public function setCustomConfigurationsPath($path = '')
+    {
+        $this->CustomConfigurationsPath = $path;
+    }
+
+    //CK4 相容，CK5 不使用（CK4 的 uploadcare 也已停用）
+    public function set_demopublickey($demopublickey = '')
+    {
+        $this->demopublickey = $demopublickey;
     }
 
     public function setWidth($Width = '')
@@ -81,8 +101,12 @@ class CkEditor5
 
         $pkg_url = XOOPS_URL . '/modules/tad_base/packages/ckeditor5';
         // CK4 的 contentsCss（清單 class、字型），CK5 無 iframe，直接載入頁面
-        // ponytail: Font Awesome 由佈景載入，這裡不重複帶
+        // Font Awesome（CK4 ckeditorfa 插入的圖示）：有裝 tadtools 時用它那份（preload 已用同一相對路徑載入，xoTheme 不會重複載入），沒裝才用自帶的
+        $fa = is_file(XOOPS_ROOT_PATH . '/modules/tadtools/css/fontawesome6/css/all.min.css')
+            ? 'modules/tadtools/css/fontawesome6/css/all.min.css'
+            : 'modules/tad_base/packages/fontawesome6/css/all.min.css';
         $css = array_merge([
+            $xoTheme ? $fa : XOOPS_URL . "/{$fa}",
             "{$pkg_url}/ckeditor5.css",
             "{$pkg_url}/style.css",
             "{$pkg_url}/ckeditor.css",
@@ -121,14 +145,27 @@ class CkEditor5
         $height  = is_numeric($this->Height) ? "{$this->Height}px" : $this->Height;
         $id      = htmlspecialchars($this->ColID, ENT_QUOTES);
         $name    = htmlspecialchars($this->ColName, ENT_QUOTES);
-        $content = htmlspecialchars((string) $this->Value, ENT_QUOTES, 'UTF-8');
+        // 同 CK4：[ 轉成 &#91;，避免 xlanguage 等輸出過濾把內容裡的 [xx] 當成標籤處理
+        $content = str_replace('[', '&#91;', htmlspecialchars((string) $this->Value, ENT_QUOTES, 'UTF-8'));
         $query   = http_build_query(['subDir' => $this->subDir, 'mod_dir' => $this->xoopsDirName]);
+
+        $tadtools_config = class_exists('\XoopsModules\Tadtools\Utility') ? \XoopsModules\Tadtools\Utility::TadToolsXoopsModuleConfig() : [];
+        // setStyle() 加的樣式：CK5 只能套 class
+        $styles = [];
+        foreach ($this->Style as $style) {
+            if (!empty($style['attributes']['class'])) {
+                $styles[] = ['name' => $style['name'], 'element' => $style['element'], 'classes' => preg_split('/\s+/', trim($style['attributes']['class']))];
+            }
+        }
+
         $options = json_encode([
             'uploadUrl'      => "{$pkg_url}/upload.php?{$query}",
             'remoteImageUrl' => "{$pkg_url}/upload.php?{$query}",
             'browseUrl'      => "{$pkg_url}/browse.php?{$query}",
             'placeholder'    => (string) $this->placeholder,
-            'toolbar'        => $this->ToolbarSet === 'my' ? 'full' : 'basic',
+            'toolbar'        => (string) $this->ToolbarSet,
+            'plainTextPaste' => !empty($tadtools_config['ck_wcag']) && $this->wcag,
+            'styles'         => $styles,
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG);
 
         // textarea 為表單欄位，CK5 送出表單時會自動回寫內容
