@@ -60,6 +60,11 @@ foreach ($path === '' ? [] : explode('/', $path) as $seg) {
         ck5_fail('路徑錯誤');
     }
 }
+// mod_dir 必須是已安裝、且使用者可讀取的模組，不能隨意在 uploads 下開資料夾或瀏覽別的模組附件
+$ck5_module = xoops_getHandler('module')->getByDirname($mod_dir);
+if (!$ck5_module || !xoops_getHandler('groupperm')->checkRight('module_read', $ck5_module->getVar('mid'), $xoopsUser->getGroups())) {
+    ck5_fail('沒有使用此模組的權限', 403);
+}
 
 // 編輯器給的根目錄；使用者只能在它底下的子資料夾活動
 $ck5_root_rel = "/uploads/{$mod_dir}/{$ck5_type}/" . ($subDir === '' ? '' : "{$subDir}/");
@@ -82,7 +87,7 @@ function ck5_current_dir($create = false)
 function ck5_url($name)
 {
     global $ck5_rel;
-    return XOOPS_URL . implode('/', array_map('rawurlencode', explode('/', $ck5_rel))) . rawurlencode($name);
+    return XOOPS_URL . ck5_url_encode_path($ck5_rel . $name);
 }
 
 // 同名時加 _1、_2…
@@ -98,9 +103,8 @@ function ck5_unique_name($dir, $base, $ext)
 // 改名、搬移、刪除只開放給該模組的管理員（會批次改資料庫）
 function ck5_can_manage()
 {
-    global $xoopsUser, $mod_dir;
-    $module = xoops_getHandler('module')->getByDirname($mod_dir);
-    return $module && $xoopsUser->isAdmin($module->getVar('mid'));
+    global $xoopsUser, $ck5_module;
+    return $xoopsUser->isAdmin($ck5_module->getVar('mid'));
 }
 
 // 給定目前資料夾下的名稱，回傳實體路徑與 uploads 起算的相對網址路徑（/uploads/…）
@@ -150,10 +154,9 @@ function ck5_is_locked($abs)
 // 本模組 xoops_version 宣告的資料表裡，所有文字欄位 [表 => [欄位…]]
 function ck5_text_columns()
 {
-    global $xoopsDB, $mod_dir;
-    $module = xoops_getHandler('module')->getByDirname($mod_dir);
-    $cols   = [];
-    foreach ($module ? (array) $module->getInfo('tables') : [] as $t) {
+    global $xoopsDB, $ck5_module;
+    $cols = [];
+    foreach ((array) $ck5_module->getInfo('tables') as $t) {
         $table  = $xoopsDB->prefix($t);
         $result = $xoopsDB->queryF("SHOW COLUMNS FROM `{$table}`");
         while ($result && $c = $xoopsDB->fetchArray($result)) {
@@ -218,13 +221,16 @@ function ck5_replace_refs($old, $new)
     return $pairs;
 }
 
-// 遞迴刪除資料夾
-function ck5_rmdir($dir)
+// 刪除檔案或整個資料夾；符號連結只刪連結本身，不進去刪它指向的內容
+function ck5_remove($path)
 {
-    foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST) as $f) {
-        if (!($f->isDir() ? rmdir($f->getPathname()) : unlink($f->getPathname()))) {
+    if (is_link($path) || !is_dir($path)) {
+        return @unlink($path) || @rmdir($path); // Windows 的資料夾連結要用 rmdir
+    }
+    foreach (array_diff(scandir($path), ['.', '..']) as $name) {
+        if (!ck5_remove($path . DIRECTORY_SEPARATOR . $name)) {
             return false;
         }
     }
-    return rmdir($dir);
+    return rmdir($path);
 }

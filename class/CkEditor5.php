@@ -160,7 +160,6 @@ class CkEditor5
 
         $options = json_encode([
             'uploadUrl'      => "{$pkg_url}/upload.php?{$query}",
-            'remoteImageUrl' => "{$pkg_url}/upload.php?{$query}",
             'browseUrl'      => "{$pkg_url}/browse.php?{$query}",
             'placeholder'    => (string) $this->placeholder,
             'toolbar'        => (string) $this->ToolbarSet,

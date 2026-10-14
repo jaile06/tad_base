@@ -10,7 +10,6 @@ import {
 	Autoformat,
 	AutoImage,
 	AutoLink,
-	Autosave,
 	BlockQuote,
 	Bold,
 	Code,
@@ -32,8 +31,6 @@ import {
 	ImageBlock,
 	ImageCaption,
 	ImageInline,
-	ImageInsert,
-	ImageInsertViaUrl,
 	ImageResize,
 	ImageStyle,
 	ImageTextAlternative,
@@ -53,7 +50,6 @@ import {
 	PasteFromOffice,
 	PlainTableOutput,
 	RemoveFormat,
-	ShowBlocks,
 	SimpleUploadAdapter,
 	SourceEditing,
 	Strikethrough,
@@ -79,7 +75,6 @@ import {
 	createDropdown,
 	toWidget,
 	toWidgetEditable,
-	IconBrowseFiles,
 	IconImage,
 	IconLink,
 	findAttributeRange,
@@ -89,7 +84,7 @@ import {
 import translations from './translations/zh.js';
 
 // 照 CK4 config.js 的同名工具列排列（'-' 換行），舊使用者找得到原本的按鈕
-// CK4 Image 對話框可瀏覽伺服器，這裡以 insertImage + browse 對應；Unlink 在連結的浮動工具列
+// CK4 的 Image、Link 對話框以 imageDialog、linkDialog 對應（內含瀏覽伺服器）；Unlink 在連結的浮動工具列
 const justify = ['alignment:left', 'alignment:center', 'alignment:right', 'alignment:justify'];
 const toolbars = {
 	my: [
@@ -267,31 +262,6 @@ function BootstrapTable(editor) {
 			api.writer.addClass(['table', 'table-bordered', 'table-hover', 'table-condensed', 'table-sm'], table);
 		}
 	}, { priority: 'lowest' }));
-}
-
-// 取代 elFinder：用原生 <dialog> 開選檔器（見 openBrowser）
-function FileBrowser(editor) {
-	const { browseUrl } = editor.config.get('tad') || {};
-	if (!browseUrl) {
-		return;
-	}
-	const insert = url => {
-		if (IMAGE_EXT.test(url)) {
-			return editor.execute('insertImage', { source: url });
-		}
-		if (!editor.model.document.selection.isCollapsed) {
-			return editor.execute('link', url);
-		}
-		editor.model.change(writer => {
-			editor.model.insertContent(writer.createText(decodeURIComponent(url.split('/').pop()), { linkHref: url }));
-		});
-	};
-	editor.ui.componentFactory.add('browse', locale => {
-		const button = new ButtonView(locale);
-		button.set({ label: '從伺服器選圖片／檔案', icon: IconBrowseFiles, tooltip: true });
-		button.on('execute', () => openBrowser(browseUrl, '從伺服器選圖片／檔案', insert));
-		return button;
-	});
 }
 
 const IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp|avif)$/i;
@@ -667,10 +637,7 @@ function FontAwesome(editor) {
 	editor.ui.componentFactory.add('fontAwesome', locale => {
 		const button = new ButtonView(locale);
 		button.set({ label: 'FontAwesome 圖示', icon: IconFontAwesome, tooltip: true });
-		button.on('execute', () => openFontAwesome(html => {
-			editor.model.insertContent(editor.data.toModel(editor.data.processor.toView(html)));
-			editor.editing.view.focus();
-		}));
+		button.on('execute', () => openFontAwesome(html => insertHtml(editor, html)));
 		return button;
 	});
 }
@@ -1242,12 +1209,13 @@ function PlainTextPaste(editor) {
 
 // 取代 CK4 pasteUploadImage 的 pasteUploadImageUrlApi：貼上的外站圖片下載到本站
 function PasteRemoteImage(editor) {
-	const { remoteImageUrl } = editor.config.get('tad') || {};
-	if (!remoteImageUrl) {
+	// 外站圖片轉存與上傳共用 upload.php（?url=）
+	const uploadUrl = editor.config.get('simpleUpload.uploadUrl');
+	if (!uploadUrl) {
 		return;
 	}
 	const localize = async src => {
-		const res = await fetch(`${remoteImageUrl}&url=${encodeURIComponent(src)}`).then(r => r.json()).catch(() => null);
+		const res = await fetch(`${uploadUrl}&url=${encodeURIComponent(src)}`).then(r => r.json()).catch(() => null);
 		if (!res?.url) {
 			return;
 		}
@@ -1269,25 +1237,25 @@ function PasteRemoteImage(editor) {
 	});
 }
 
-export function createEditor(element, { uploadUrl, browseUrl, remoteImageUrl, placeholder = '', toolbar = 'my', height, plainTextPaste = false, styles = [] } = {}) {
+export function createEditor(element, { uploadUrl, browseUrl, placeholder = '', toolbar = 'my', height, plainTextPaste = false, styles = [] } = {}) {
 	return ClassicEditor.create(element, {
-		tad: { browseUrl, remoteImageUrl, plainTextPaste },
+		tad: { browseUrl, plainTextPaste },
 		licenseKey: 'GPL',
 		language: 'zh',
 		translations: [translations],
 		toolbar: { items: toolbars[toolbar] || toolbars.my, shouldNotGroupWhenFull: true },
 		placeholder,
 		plugins: [
-			Alignment, Autoformat, AutoImage, AutoLink, Autosave, BlockQuote, Bold, Code, CodeBlock, Emoji, Essentials,
+			Alignment, Autoformat, AutoImage, AutoLink, BlockQuote, Bold, Code, CodeBlock, Emoji, Essentials,
 			FindAndReplace, FontBackgroundColor, FontColor, FontFamily, FontSize, FullPage, GeneralHtmlSupport,
 			Heading, Highlight, HorizontalLine, HtmlComment, HtmlEmbed, ImageBlock, ImageCaption, ImageInline,
-			ImageInsert, ImageInsertViaUrl, ImageResize, ImageStyle, ImageTextAlternative, ImageToolbar, ImageUpload,
+			ImageResize, ImageStyle, ImageTextAlternative, ImageToolbar, ImageUpload,
 			Indent, IndentBlock, Italic, Link, LinkImage, List, ListProperties, MediaEmbed, Mention, Paragraph,
-			PasteFromMarkdownExperimental, PasteFromOffice, PlainTableOutput, RemoveFormat, ShowBlocks,
+			PasteFromMarkdownExperimental, PasteFromOffice, PlainTableOutput, RemoveFormat,
 			SimpleUploadAdapter, SourceEditing, Strikethrough, Style, Subscript, Superscript, Table, TableCaption,
 			TableCellProperties, TableColumnResize, TableLayout, TableProperties, TableToolbar, TextTransformation,
 			TodoList, Underline, WordCount, PageBreak,
-			BootstrapTable, FileBrowser, ImageDialog, LinkDialog, PasteRemoteImage, PlainTextPaste, FontAwesome, TextDropdowns, ColumnWidget, ColumnTemplates
+			BootstrapTable, ImageDialog, LinkDialog, PasteRemoteImage, PlainTextPaste, FontAwesome, TextDropdowns, ColumnWidget, ColumnTemplates
 		],
 		// 取代 CK4 embed/embedsemantic：直接輸出 iframe，前台不需額外 JS
 		mediaEmbed: { previewsInData: true },
@@ -1360,7 +1328,7 @@ function registerCk4Instance(element, editor) {
 		getData: () => editor.getData(),
 		setData: data => editor.setData(data),
 		updateElement: () => editor.updateSourceElement(),
-		insertHtml: html => editor.model.insertContent(editor.data.toModel(editor.data.processor.toView(html))),
+		insertHtml: html => insertHtml(editor, html),
 		destroy: () => { delete ck4.instances[name]; return editor.destroy(); }
 	};
 	ck4.fire('instanceReady', instance);
@@ -1375,10 +1343,8 @@ window.CKEDITOR?._ready?.((el, config = {}) => {
 	// 從 CK4 的 elFinder 網址取出 mod_dir、subDir
 	const old = config.filebrowserBrowseUrl ? new URL(config.filebrowserBrowseUrl, location.href).searchParams : null;
 	const query = old?.get('mod_dir') ? new URLSearchParams({ mod_dir: old.get('mod_dir'), subDir: old.get('subDir') || '' }) : null;
-	const upload = query ? new URL(`upload.php?${query}`, import.meta.url).href : undefined;
 	return createEditor(element, {
-		uploadUrl: upload,
-		remoteImageUrl: upload,
+		uploadUrl: query ? new URL(`upload.php?${query}`, import.meta.url).href : undefined,
 		browseUrl: query ? new URL(`browse.php?${query}`, import.meta.url).href : undefined,
 		placeholder: config.editorplaceholder || '',
 		toolbar: config.toolbar || 'my',

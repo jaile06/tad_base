@@ -58,7 +58,7 @@ if ($op !== '') {
         }
 
         if ($op === 'delete') {
-            if (!(is_dir($abs) ? ck5_rmdir($abs) : unlink($abs))) {
+            if (!ck5_remove($abs)) {
                 ck5_fail('刪除失敗', 500);
             }
         } elseif ($op === 'rename' || $op === 'move') {
@@ -104,14 +104,16 @@ if ($op !== '') {
 }
 
 $image_ext = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'avif'];
-$locked    = ck5_locked_names();
-$dirs      = [];
+$locked     = ck5_locked_names();
+$can_manage = ck5_can_manage();
+$dirs       = [];
 $files     = [];
 $dir       = ck5_current_dir();
 if ($dir !== false) {
     foreach (new DirectoryIterator($dir) as $f) {
         $name = $f->getFilename();
-        if ($f->isDot() || $name[0] === '.') {
+        // 模組附件可能屬於限定群組閱讀的內容，只列給模組管理員
+        if ($f->isDot() || $name[0] === '.' || (!$can_manage && isset($locked[$name]))) {
             continue;
         }
         if ($f->isDir()) {
@@ -132,7 +134,7 @@ usort($files, fn($a, $b) => $b['mtime'] <=> $a['mtime']); // 新的在前
 
 echo json_encode([
     'path'       => $ck5_path,
-    'can_manage' => ck5_can_manage(),
+    'can_manage' => $can_manage,
     'dirs'       => array_values($dirs),
     'files'      => $files,
     'replaced'   => $replaced, // [[舊, 新]…]：前端用來同步更新編輯中的內容
