@@ -139,9 +139,11 @@ const fontSizeOptions = ['default', ...[8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 2
 	return { title: String(px), model: rem, view: { name: 'span', styles: { 'font-size': rem }, priority: 7 } };
 })];
 
-// 對應 CK4 CkEditor::getStyle()（只支援 class，inline style 的項目略過；「語法」改用工具列的 code 按鈕）
+// 對應 CK4 CkEditor::getStyle()（只支援 class）；陰影標題見 TextShadowStyle，自適應圖片在影像對話框，「語法」用 Ctrl+E 或 `文字`
 // 新內容只輸出 Bootstrap 5 class；舊文章的 BS3/4 class 由 GeneralHtmlSupport 原樣保留
 const styleDefinitions = [
+	['陰影標題h2', 'h2', 'ck5-text-shadow'],
+	['陰影標題h3', 'h3', 'ck5-text-shadow'],
 	['Info 提示框', 'div', 'alert alert-info'],
 	['Success 提示框', 'div', 'alert alert-success'],
 	['Warning 提示框', 'div', 'alert alert-warning'],
@@ -182,24 +184,31 @@ function TextDropdowns(editor) {
 
 // 取代 CK4 widgetbootstrap／widgettemplatemenu：插入同樣的 Bootstrap 多欄 HTML，舊文章的版型也能照常編輯
 // 版型是 widget（同 CK4）：點外框可整組選取、按 Delete 整組刪除，各欄內容可直接編輯
-const PLACEHOLDER = 'https://fakeimg.pl/{size}/?retina=1&font=noto&text=%E6%94%BE%E7%BD%AE%E5%9C%96%E7%89%87';
-const column = (cls, img, text) => `<div class="${cls}">${img ? `<img src="${PLACEHOLDER.replace('{size}', img)}" class="img-fluid">` : ''}${text ? `<p>${text}</p>` : ''}</div>`;
-const columns = (n, img) => Array.from({ length: n }, () => column(`col-sm-${12 / n}`, img, n === 2 ? '輸入內容' : '輸入文字')).join('');
-const sidebar = column('col-sm-4', '300x250');
-const main = column('col-sm-8', '', '輸入內容');
+// 各欄只放文字，不預插佔位圖
+const column = (cls, text) => `<div class="${cls}"><p>${text}</p></div>`;
+const columns = n => Array.from({ length: n }, () => column(`col-sm-${12 / n}`, n === 2 ? '輸入內容' : '輸入文字')).join('');
+const sidebar = column('col-sm-4', '輸入內容');
+const main = column('col-sm-8', '輸入內容');
 const columnTemplates = [
-	['新增 1:2 雙欄', `<div class="row two-col-left">${sidebar}${main}</div>`],
-	['新增 2:1 雙欄', `<div class="row two-col-right">${main}${sidebar}</div>`],
-	['新增 2 欄', `<div class="row two-col">${columns(2, '500x280')}</div>`],
-	['新增 3 欄', `<div class="row three-col">${columns(3, '400x225')}</div>`],
-	['新增 4 欄', `<div class="row four-col">${columns(4, '400x225')}</div>`],
-	['新增 6 欄', `<div class="row six-col">${columns(6, '400x225')}</div>`]
+	['新增 1:2 雙欄', `<div class="row">${sidebar}${main}</div>`],
+	['新增 2:1 雙欄', `<div class="row">${main}${sidebar}</div>`],
+	['新增 2 欄', `<div class="row">${columns(2)}</div>`],
+	['新增 3 欄', `<div class="row">${columns(3)}</div>`],
+	['新增 4 欄', `<div class="row">${columns(4)}</div>`],
+	['新增 6 欄', `<div class="row">${columns(6)}</div>`]
 ];
 const IconColumns = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2 3h4.5v14H2zm5.75 0h4.5v14h-4.5zM13.5 3H18v14h-4.5z"/></svg>';
 
-// 同 CK4 upcast：只有這幾種 class 的 div.row 視為版型，其他 div 仍交給 GeneralHtmlSupport
+// 視為版型的 div.row：帶 CK4 舊版型 class，或子元素全是 col-* 欄位；其他 div 仍交給 GeneralHtmlSupport
 const ROW_CLASSES = ['two-col-left', 'two-col-right', 'two-col', 'three-col', 'four-col', 'six-col'];
-const isRow = v => v?.is?.('element', 'div') && v.hasClass('row') && ROW_CLASSES.some(c => v.hasClass(c));
+const isCol = v => v.is('element', 'div') && [...v.getClassNames()].some(c => /^col(-|$)/.test(c));
+const isRow = v => {
+	if (!v?.is?.('element', 'div') || !v.hasClass('row')) {
+		return false;
+	}
+	const children = [...v.getChildren()].filter(c => c.is('element'));
+	return ROW_CLASSES.some(c => v.hasClass(c)) || (children.length > 0 && children.every(isCol));
+};
 
 function ColumnWidget(editor) {
 	const { schema } = editor.model;
@@ -234,6 +243,71 @@ function ColumnWidget(editor) {
 		model: 'bsCol',
 		view: (m, { writer }) => toWidgetEditable(writer.createEditableElement('div', attrs(m)), writer)
 	});
+}
+
+// 載入舊內容時清成 Bootstrap 5：拿掉 CK4 版型留下的佔位圖、two-col／span6／coln-1 等舊 class，img-responsive 換成 img-fluid
+// ponytail: 只處理字串內容（setData／初始內容）；整頁模式（含 <html>）不處理
+function cleanLegacyHtml(html) {
+	if (/<html/i.test(html) || !/fakeimg\.pl|img-responsive|class="[^"]*\b(span\d+|coln-\d+|(two|three|four|six)-col)\b/.test(html)) {
+		return html;
+	}
+	const t = document.createElement('template');
+	t.innerHTML = html;
+	t.content.querySelectorAll('img[src*="fakeimg.pl"]').forEach(img => {
+		const p = img.parentElement;
+		img.remove();
+		if (p?.matches('p') && !p.textContent.trim() && !p.children.length) {
+			p.remove();
+		}
+	});
+	t.content.querySelectorAll('img.img-responsive').forEach(img => img.classList.replace('img-responsive', 'img-fluid'));
+	t.content.querySelectorAll(ROW_CLASSES.map(c => `div.row.${c}, div.row.${c} > div`).join(',')).forEach(div => {
+		div.classList.remove(...ROW_CLASSES, ...[...div.classList].filter(c => /^(span\d+|coln-\d+)$/.test(c)));
+	});
+	return t.innerHTML;
+}
+function CleanLegacyHtml(editor) {
+	const { processor } = editor.data;
+	const toView = processor.toView.bind(processor);
+	processor.toView = html => toView(cleanLegacyHtml(html));
+}
+
+// CK4「陰影標題」是 inline style，CK5 樣式只能套 class：編輯時用 ck5-text-shadow，存檔換回同樣的 inline style，前台不需額外 CSS
+const SHADOW = '1px 1px 1px #aaaaaa';
+function TextShadowStyle(editor) {
+	const { processor } = editor.data;
+	const toView = processor.toView.bind(processor);
+	const toData = processor.toData.bind(processor);
+	const probe = document.createElement('span').style;
+	probe.textShadow = SHADOW;
+	const convert = (html, test, fix) => {
+		if (/<html/i.test(html) || !test.test(html)) {
+			return html;
+		}
+		const t = document.createElement('template');
+		t.innerHTML = html;
+		t.content.querySelectorAll('h2, h3').forEach(fix);
+		return t.innerHTML;
+	};
+	processor.toView = html => toView(convert(html, /text-shadow/, h => {
+		if (h.style.textShadow === probe.textShadow) {
+			h.style.removeProperty('text-shadow');
+			h.style.length || h.removeAttribute('style');
+			h.classList.add('ck5-text-shadow');
+		}
+	}));
+	processor.toData = fragment => convert(toData(fragment), /ck5-text-shadow/, h => {
+		if (h.classList.contains('ck5-text-shadow')) {
+			h.classList.remove('ck5-text-shadow');
+			h.classList.length || h.removeAttribute('class');
+			h.style.textShadow = SHADOW;
+		}
+	});
+}
+
+// 「語法」（行內 code）不放工具列：Ctrl+E（同 Notion），或 Autoformat 打 `文字`
+function CodeShortcut(editor) {
+	editor.keystrokes.set('Ctrl+E', 'code');
 }
 
 function ColumnTemplates(editor) {
@@ -277,6 +351,15 @@ function ImageDialog(editor) {
 			open();
 		}
 	}));
+	// 拖放／貼上上傳的圖片不經對話框，上傳完成時同樣加上自適應
+	editor.plugins.get('ImageUploadEditing').on('uploadComplete', (evt, { imageElement }) => {
+		const attrs = imageElement.getAttribute('htmlImgAttributes') || {};
+		editor.model.change(writer => writer.setAttribute('htmlImgAttributes', {
+			...attrs,
+			classes: [...new Set([...(attrs.classes || []), 'img-fluid'])],
+			styles: { ...attrs.styles, height: 'auto' }
+		}, imageElement));
+	});
 }
 
 // 目前選取的圖片轉成 HTML 再解析，取得 img、外層 a 與 figure
@@ -314,6 +397,11 @@ function openImageDialog(editor) {
 		vspace: num(takePair('margin-top', 'margin-bottom')),
 		align: take('float')
 	};
+	// CK4 樣式「自適應圖片／圖框」改成對話框選單；有 img-fluid 才把 img-thumbnail 算進選單
+	const classes = (img?.getAttribute('class') || '').split(/\s+/).filter(Boolean);
+	const fluid = classes.includes('img-fluid');
+	// 新插入的圖片預設自適應，手機不會被大圖撐破
+	const responsive = !img ? 'img-fluid' : fluid ? (classes.includes('img-thumbnail') ? 'img-fluid img-thumbnail' : 'img-fluid') : '';
 
 	const browseButton = target => browseFor(browseUrl, target);
 
@@ -326,7 +414,8 @@ function openImageDialog(editor) {
 		hspace: input(initial.hspace, { size: 5 }),
 		vspace: input(initial.vspace, { size: 5 }),
 		align: select(initial.align, [['', '<未設定>'], ['left', '靠左'], ['right', '靠右']]),
-		className: input(img?.getAttribute('class')),
+		responsive: select(responsive, [['', '<未設定>'], ['img-fluid', '自適應圖片'], ['img-fluid img-thumbnail', '自適應圖框']]),
+		className: input(classes.filter(c => !fluid || !['img-fluid', 'img-thumbnail'].includes(c)).join(' ')),
 		title: input(img?.getAttribute('title')),
 		style: input(css.cssText)
 	};
@@ -338,7 +427,8 @@ function openImageDialog(editor) {
 		style.cssText = f.style.value;
 		const set = (prop, v) => v.trim() && style.setProperty(prop, unit(v));
 		set('width', f.width.value);
-		set('height', f.height.value);
+		// 自適應時高度一律 auto（同 CK4），否則固定高度會讓縮小後的圖片變形
+		f.responsive.value ? style.setProperty('height', 'auto') : set('height', f.height.value);
 		if (f.border.value.trim()) {
 			set('border-width', f.border.value);
 			style.setProperty('border-style', 'solid');
@@ -353,8 +443,9 @@ function openImageDialog(editor) {
 		image.setAttribute('alt', f.alt.value.trim());
 		// 對話框已不提供的屬性沿用原圖，避免修改時遺失
 		['id', 'dir', 'lang', 'longdesc'].forEach(name => img?.hasAttribute(name) && image.setAttribute(name, img.getAttribute(name)));
-		[['class', f.className], ['title', f.title]]
-			.forEach(([name, node]) => node.value.trim() && image.setAttribute(name, node.value.trim()));
+		const cls = `${f.responsive.value} ${f.className.value}`.trim();
+		cls && image.setAttribute('class', cls);
+		f.title.value.trim() && image.setAttribute('title', f.title.value.trim());
 		if (style.cssText) {
 			image.setAttribute('style', style.cssText);
 		}
@@ -406,11 +497,10 @@ function openImageDialog(editor) {
 			el('div', { className: 'ck5-image-sizes' },
 				el('div', { className: 'ck5-image-row' }, field('寬度', f.width), lock, reset),
 				field('高度', f.height),
-				field('框線', f.border),
 				field('HSpace', f.hspace),
-				field('VSpace', f.vspace),
-				field('對齊方式', f.align)),
+				field('VSpace', f.vspace)),
 			el('div', { className: 'ck5-image-field ck5-image-preview-wrap' }, el('span', { textContent: '預覽' }), preview)),
+		el('div', { className: 'ck5-image-grid' }, field('框線', f.border), field('對齊方式', f.align), field('自適應', f.responsive)),
 		cssSection(f, '影像屬性'));
 
 	// 「連結」頁籤與連結對話框相同，只是沒有顯示文字（內容就是圖片）
@@ -1314,7 +1404,8 @@ export function createEditor(element, { uploadUrl, browseUrl, placeholder = '', 
 			SimpleUploadAdapter, SourceEditing, Strikethrough, Style, Subscript, Superscript, Table, TableCaption,
 			TableCellProperties, TableColumnResize, TableLayout, TableProperties, TableToolbar, TextTransformation,
 			TodoList, Underline, WordCount, PageBreak,
-			BootstrapTable, ImageDialog, LinkDialog, PasteRemoteImage, PlainTextPaste, SourceEditingCodeMirror, CodeBlockHighlight, FontAwesome, TextDropdowns, ColumnWidget, ColumnTemplates
+			BootstrapTable, ImageDialog, LinkDialog, PasteRemoteImage, PlainTextPaste, SourceEditingCodeMirror, CodeBlockHighlight, FontAwesome, TextDropdowns, ColumnWidget, ColumnTemplates, CleanLegacyHtml,
+			TextShadowStyle, CodeShortcut
 		],
 		// 取代 CK4 embed/embedsemantic：直接輸出 iframe，前台不需額外 JS
 		mediaEmbed: { previewsInData: true },

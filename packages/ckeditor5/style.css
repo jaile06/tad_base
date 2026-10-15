@@ -437,7 +437,7 @@
 	width: 4.5rem;
 }
 .ck5-image-preview {
-	height: 16rem;
+	height: 12rem;
 	overflow: auto;
 	padding: .25rem;
 	border: 1px solid #bbb;
@@ -724,4 +724,9 @@
 	color: var(--ck-color-text);
 	border: 1px solid var(--ck-color-base-border);
 	border-top: none;
+}
+
+/* 陰影標題：編輯區與樣式選單預覽用，存檔時轉回 inline style（main.js TextShadowStyle） */
+.ck5-text-shadow {
+	text-shadow: 1px 1px 1px #aaaaaa;
 }
