@@ -332,130 +332,469 @@
 	}
 }
 
-/* 影像屬性（仿 CK4 對話框） */
-.ck5-image-dialog {
-	width: min(560px, 95vw);
+/* ==========================================================================
+   影像屬性與連結對話框（專業 UI 優化排版）
+   ========================================================================== */
+
+/* 對話框外框：精準寬度、立體陰影、圓角、現代系統字型 */
+.ck5-browser.ck5-image-dialog {
+	width: min(720px, 94vw);
+	max-height: 90vh;
+	border: 1px solid #e2e8f0;
+	border-radius: 12px;
+	box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+	font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+	color: #1e293b;
+	background: #ffffff;
+	overflow: hidden;
 }
-/* 面板用了 display:flex，hidden 屬性要明確隱藏，否則分頁切換無效 */
+
+/* 玻璃擬態遮罩 */
+.ck5-image-dialog::backdrop {
+	background: rgba(15, 23, 42, 0.45);
+	backdrop-filter: blur(2px);
+}
+
+/* 面板切換隱藏 */
 .ck5-image-dialog [hidden] {
 	display: none !important;
 }
-/* 連結對話框 */
+
+/* 頂部標題列與分頁列 */
+.ck5-image-dialog .ck5-browser-header {
+	display: flex;
+	align-items: center;
+	height: 3.25rem;
+	padding: 0 1.25rem;
+	border-bottom: 1px solid #e2e8f0;
+	background: #f8fafc;
+	position: sticky;
+	top: 0;
+	z-index: 2;
+}
+
+.ck5-image-dialog .ck5-browser-header > strong {
+	font-size: 1.05rem;
+	font-weight: 700;
+	color: #0f172a;
+	white-space: nowrap;
+}
+
+/* 分頁切換鈕群 */
+.ck5-image-dialog .ck5-browser-tabs {
+	display: flex;
+	align-items: stretch;
+	gap: 0.25rem;
+	height: 100%;
+	margin: 0 auto 0 1.5rem;
+}
+
+.ck5-image-dialog .ck5-browser-header .ck5-browser-tabs button {
+	display: inline-flex;
+	align-items: center;
+	padding: 0 1.1rem;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	background: transparent;
+	font-size: 0.9rem;
+	font-weight: 500;
+	color: #64748b;
+	cursor: pointer;
+	transition: all 0.15s ease;
+}
+
+.ck5-image-dialog .ck5-browser-header .ck5-browser-tabs button:hover {
+	color: #0f172a;
+	background: rgba(241, 245, 249, 0.8);
+}
+
+.ck5-image-dialog .ck5-browser-header .ck5-browser-tabs button[aria-selected="true"] {
+	color: #2563eb;
+	border-bottom-color: #2563eb;
+	font-weight: 600;
+	background: transparent;
+}
+
+/* 關閉按鈕 */
+.ck5-image-dialog .ck5-browser-header > button[value="cancel"] {
+	width: 2rem;
+	height: 2rem;
+	border: 0;
+	border-radius: 6px;
+	background: transparent;
+	font-size: 1.35rem;
+	line-height: 1;
+	color: #94a3b8;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: auto;
+}
+
+.ck5-image-dialog .ck5-browser-header > button[value="cancel"]:hover {
+	color: #ef4444;
+	background: #fee2e2;
+}
+
+/* 主面板內距與排列 */
+.ck5-image-panel {
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+	padding: 1.25rem 1.5rem;
+	max-height: calc(90vh - 7rem);
+	overflow-y: auto;
+	box-sizing: border-box;
+}
+
+/* 連結對話框專屬樣式 */
 .ck5-image-panel.ck5-link-panel {
-	gap: .9rem;
+	gap: 1rem;
 	min-height: 0;
 }
 .ck5-link-protocol > .ck5-image-field:first-child {
-	flex: 0 0 7.5rem;
-}
-.ck5-image-dialog input[type=text],
-.ck5-image-dialog select,
-.ck5-image-dialog .ck5-image-row > button:not(.ck5-image-icon) {
-	min-height: 2.25rem;
-	line-height: 1.5;
-}
-/* 影像屬性：標題後接分頁 */
-.ck5-image-dialog .ck5-browser-tabs {
-	margin-left: 1.5rem;
-	margin-right: auto;
-}
-.ck5-image-dialog fieldset {
-	margin: 0;
-	padding: .5rem .75rem .75rem;
-	border: 1px solid #dee2e6;
-	border-radius: 4px;
-}
-.ck5-image-dialog legend {
-	float: none;
-	width: auto;
-	margin: 0;
-	padding: 0 .35rem;
-	font-size: .85rem;
-	font-weight: bold;
+	flex: 0 0 8.5rem;
 }
 .ck5-link-check {
 	display: inline-flex;
 	align-items: center;
-	gap: .4rem;
+	gap: 0.5rem;
+	font-size: 0.875rem;
+	color: #334155;
+	cursor: pointer;
+	user-select: none;
+}
+.ck5-link-check input[type="checkbox"] {
+	width: 1.1rem;
+	height: 1.1rem;
+	accent-color: #2563eb;
 	cursor: pointer;
 }
-.ck5-image-panel {
-	display: flex;
-	flex-direction: column;
-	gap: .6rem;
-	padding: 1rem;
-	min-height: 22rem;
-}
+
+/* 欄位整體設定 */
 .ck5-image-field {
 	display: flex;
 	flex-direction: column;
-	gap: .2rem;
+	gap: 0.35rem;
 	min-width: 0;
 }
+
 .ck5-image-field > span {
-	font-size: .85rem;
+	font-size: 0.825rem;
+	font-weight: 600;
+	color: #475569;
+	letter-spacing: 0.01em;
 }
-.ck5-image-field input,
-.ck5-image-field select {
-	padding: .25rem .4rem;
-	border: 1px solid #bbb;
-	border-radius: 3px;
+
+/* 輸入框與下拉選單 */
+.ck5-image-dialog input[type="text"],
+.ck5-image-dialog select {
+	height: 2.35rem;
+	padding: 0.35rem 0.65rem;
+	border: 1px solid #cbd5e1;
+	border-radius: 6px;
+	font-size: 0.875rem;
+	color: #1e293b;
+	background-color: #ffffff;
+	box-sizing: border-box;
+	transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
+
+.ck5-image-dialog select {
+	cursor: pointer;
+	padding-right: 1.75rem;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+	background-position: right 0.5rem center;
+	background-repeat: no-repeat;
+	background-size: 1.25rem 1.25rem;
+	-webkit-appearance: none;
+	-moz-appearance: none;
+	appearance: none;
+}
+
+.ck5-image-dialog input[type="text"]:hover,
+.ck5-image-dialog select:hover {
+	border-color: #94a3b8;
+}
+
+.ck5-image-dialog input[type="text"]:focus,
+.ck5-image-dialog select:focus {
+	border-color: #3b82f6;
+	outline: none;
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+/* 列佈局 */
 .ck5-image-row {
 	display: flex;
 	align-items: flex-end;
-	gap: .5rem;
+	gap: 0.5rem;
 }
+
 .ck5-image-row > .ck5-image-field {
 	flex: 1 1 auto;
 }
-.ck5-image-row > button,
-.ck5-image-panel > .ck5-image-row > button {
-	padding: .25rem .75rem;
-	border: 1px solid #bbb;
-	border-radius: 3px;
-	background: #f8f9fa;
+
+/* 「瀏覽並上傳」等一般動作按鈕 */
+.ck5-image-row > button:not(.ck5-image-icon),
+.ck5-image-panel > .ck5-image-row > button:not(.ck5-image-icon) {
+	height: 2.35rem;
+	padding: 0 1rem;
+	border: 1px solid #cbd5e1;
+	border-radius: 6px;
+	background: #f8fafc;
+	color: #334155;
+	font-size: 0.875rem;
+	font-weight: 500;
 	cursor: pointer;
 	white-space: nowrap;
+	transition: all 0.15s ease;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 }
+
+.ck5-image-row > button:not(.ck5-image-icon):hover,
+.ck5-image-panel > .ck5-image-row > button:not(.ck5-image-icon):hover {
+	background: #f1f5f9;
+	border-color: #94a3b8;
+	color: #0f172a;
+}
+
+.ck5-image-row > button:not(.ck5-image-icon):active,
+.ck5-image-panel > .ck5-image-row > button:not(.ck5-image-icon):active {
+	background: #e2e8f0;
+}
+
+/* 鎖定比例 (🔒) 與 重設大小 (↻) 按鈕美化 */
 .ck5-image-row > .ck5-image-icon {
-	padding: .25rem .4rem;
-	border: 0;
-	background: none;
+	width: 2.35rem;
+	height: 2.35rem;
+	padding: 0;
+	border: 1px solid #cbd5e1;
+	border-radius: 6px;
+	background: #ffffff;
+	font-size: 0.95rem;
+	color: #475569;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
 }
+
+.ck5-image-row > .ck5-image-icon:hover {
+	background: #f8fafc;
+	border-color: #94a3b8;
+	color: #0f172a;
+	transform: translateY(-1px);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.ck5-image-row > .ck5-image-icon:active {
+	background: #f1f5f9;
+	transform: translateY(0);
+}
+
+/* 中間區域：左側尺寸/間距設定 + 右側即時預覽 */
 .ck5-image-columns {
 	display: grid;
-	grid-template-columns: 9rem 1fr;
-	gap: 1rem;
+	grid-template-columns: 215px 1fr;
+	gap: 1.25rem;
+	align-items: stretch;
 }
+
+/* 左側尺寸區塊：採用俐落的格狀排列 */
 .ck5-image-sizes {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.55rem 0.5rem;
+	align-content: start;
+}
+
+/* 寬度與按鈕整列橫跨兩欄 */
+.ck5-image-sizes > .ck5-image-row {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: flex-end;
+	gap: 0.35rem;
+}
+
+.ck5-image-sizes > .ck5-image-row > .ck5-image-field {
+	flex: 1 1 auto;
+}
+
+/* 高度欄位整列橫跨兩欄，寬度與寬度輸入框垂直完美對齊 */
+.ck5-image-sizes > label:nth-of-type(1) {
+	grid-column: 1 / -1;
+}
+
+.ck5-image-sizes > label:nth-of-type(1) input {
+	width: calc(100% - 2 * 2.35rem - 0.7rem);
+}
+
+/* HSpace 與 VSpace 並列於下一列 */
+.ck5-image-sizes > label:nth-of-type(2),
+.ck5-image-sizes > label:nth-of-type(3) {
+	width: 100%;
+}
+
+.ck5-image-sizes input {
+	width: 100%;
+}
+
+/* 右側預覽外包層 */
+.ck5-image-preview-wrap {
 	display: flex;
 	flex-direction: column;
-	gap: .4rem;
+	min-width: 0;
 }
-.ck5-image-sizes input {
-	width: 4.5rem;
-}
+
+/* 預覽容器：優化文字排版、陰影與精緻捲軸 */
 .ck5-image-preview {
-	height: 12rem;
+	height: 11.25rem;
 	overflow: auto;
-	padding: .25rem;
-	border: 1px solid #bbb;
-	font-size: .8rem;
+	padding: 0.85rem;
+	border: 1px solid #cbd5e1;
+	border-radius: 8px;
+	background: #ffffff;
+	font-size: 0.825rem;
+	line-height: 1.65;
+	color: #475569;
+	box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
 }
+
+.ck5-image-preview::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+.ck5-image-preview::-webkit-scrollbar-thumb {
+	background: #cbd5e1;
+	border-radius: 3px;
+}
+
+.ck5-image-preview::-webkit-scrollbar-thumb:hover {
+	background: #94a3b8;
+}
+
+/* 預覽圖片比例防變形：防止被 inline 高度或百分比壓扁拉伸，完整保留真實比例 */
 .ck5-image-preview img {
 	max-width: 100%;
+	max-height: 135px;
+	object-fit: contain;
+	vertical-align: top;
 }
+
+/* 當圖片寬度設為百分比（如 50%）時，強制高度自動，確保預覽絕不被固定高度拉形 */
+.ck5-image-preview img[style*="%"] {
+	height: auto !important;
+}
+
+/* 框線、對齊方式、自適應：三欄等寬均勻分佈 */
 .ck5-image-grid {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	align-content: start;
-	gap: .6rem;
+	gap: 0.85rem;
 }
+
+/* 進階屬性分組框（fieldset） */
+.ck5-image-dialog fieldset {
+	margin: 0.25rem 0 0;
+	padding: 0.75rem 1rem 0.95rem;
+	border: 1px solid #e2e8f0;
+	border-radius: 8px;
+	background: #fafbfc;
+}
+
+.ck5-image-dialog legend {
+	float: none;
+	width: auto;
+	margin: 0;
+	padding: 0 0.5rem;
+	font-size: 0.8rem;
+	font-weight: 600;
+	color: #64748b;
+	letter-spacing: 0.03em;
+}
+
+/* 底部按鈕列 */
 .ck5-image-footer {
-	padding: .75rem 1rem;
-	border-top: 1px solid #ddd;
-	background: #f8f8f8;
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	gap: 0.65rem;
+	padding: 0.85rem 1.5rem;
+	border-top: 1px solid #e2e8f0;
+	background: #f8fafc;
+}
+
+.ck5-image-footer button {
+	min-width: 4.75rem;
+	height: 2.35rem;
+	padding: 0 1.25rem;
+	border: 1px solid #cbd5e1;
+	border-radius: 6px;
+	font-size: 0.875rem;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* 取消按鈕 */
+.ck5-image-footer button[value="cancel"] {
+	background: #ffffff;
+	color: #475569;
+	border-color: #cbd5e1;
+}
+
+.ck5-image-footer button[value="cancel"]:hover {
+	background: #f1f5f9;
+	color: #0f172a;
+	border-color: #94a3b8;
+}
+
+/* 確定按鈕 */
+.ck5-image-footer button[value="ok"] {
+	background: #2563eb;
+	color: #ffffff;
+	border-color: #2563eb;
+	box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+}
+
+.ck5-image-footer button[value="ok"]:hover {
+	background: #1d4ed8;
+	border-color: #1d4ed8;
+	box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+.ck5-image-footer button[value="ok"]:active {
+	background: #1e40af;
+}
+
+/* RWD 響應式：手機或窄螢幕時自然堆疊 */
+@media (max-width: 640px) {
+	.ck5-browser.ck5-image-dialog {
+		width: 95vw;
+		max-height: 94vh;
+	}
+	.ck5-image-columns {
+		grid-template-columns: 1fr;
+		gap: 0.85rem;
+	}
+	.ck5-image-sizes > label:nth-of-type(1) input {
+		width: 100%;
+	}
+	.ck5-image-grid {
+		grid-template-columns: 1fr;
+	}
 }
 
 /* FontAwesome 選圖示 */
