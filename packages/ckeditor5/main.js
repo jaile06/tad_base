@@ -82,6 +82,7 @@ import {
 } from './ckeditor5.js';
 
 import translations from './translations/zh.js';
+import SourceEditingCodeMirror from './sourceeditingcodemirror.js';
 
 // 照 CK4 config.js 的同名工具列排列（'-' 換行），舊使用者找得到原本的按鈕
 // CK4 的 Image、Link 對話框以 imageDialog、linkDialog 對應（內含瀏覽伺服器）；Unlink 在連結的浮動工具列
@@ -91,7 +92,7 @@ const toolbars = {
 		'sourceEditing', '|',
 		'undo', 'redo', '|',
 		'imageDialog', 'insertTable', 'horizontalLine', 'emoji', 'linkDialog', '|',
-		'numberedList', 'bulletedList', 'todoList', 'removeFormat', 'code', 'codeBlock', '|',
+		'numberedList', 'bulletedList', 'todoList', 'removeFormat', 'codeBlock', '|',
 		'blockQuote', '|',
 		'pageBreak', 'columnTemplates',
 		'-',
@@ -1207,6 +1208,70 @@ function PlainTextPaste(editor) {
 	}, { priority: 'high' });
 }
 
+// 程式碼區塊語法上色：CodeMirror 5 runMode 斷詞（sourceeditingcodemirror.js 已載入 window.CodeMirror），
+// 用 CSS Custom Highlight API 上色，不動編輯區 DOM，存檔內容不變；顏色在 style.css 的 ::highlight(cm-*)
+const CODE_MODES = { html: 'htmlmixed', css: 'css', javascript: 'javascript', php: 'text/x-php', sql: 'text/x-sql', python: 'python', bash: 'shell', json: 'application/json' };
+const codeHighlights = {};
+
+function CodeBlockHighlight(editor) {
+	// ponytail: 不支援 Highlight API 的舊瀏覽器（Firefox < 140）就不上色
+	if (!window.CSS?.highlights || !window.CodeMirror?.runMode) {
+		return;
+	}
+	const view = editor.editing.view;
+	let mine = [];
+	// ponytail: 每次 render 重新斷詞全部程式碼區塊，區塊很大時才需要改成只處理有變動的
+	view.on('render', () => {
+		mine.forEach(([highlight, range]) => highlight.delete(range));
+		mine = [];
+		for (const code of view.getDomRoot()?.querySelectorAll('pre > code[class*="language-"]') || []) {
+			const mode = CODE_MODES[code.className.match(/language-(\S+)/)[1]];
+			if (!mode) {
+				continue;
+			}
+			// 文字節點串成完整原始碼（<br> 視為換行），記下每個節點的起點以便換回 DOM 位置
+			const nodes = [];
+			let text = '';
+			const walker = document.createTreeWalker(code, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+			while (walker.nextNode()) {
+				const node = walker.currentNode;
+				if (node.nodeType === Node.TEXT_NODE) {
+					nodes.push({ node, start: text.length });
+					text += node.data;
+				} else if (node.nodeName === 'BR') {
+					text += '\n';
+				}
+			}
+			const locate = (offset, end) => {
+				const hit = nodes.find(n => end ? offset <= n.start + n.node.data.length : offset < n.start + n.node.data.length);
+				return hit && [hit.node, offset - hit.start];
+			};
+			let pos = 0;
+			window.CodeMirror.runMode(text, mode, (token, style) => {
+				const from = pos;
+				pos += token.length;
+				const start = style && locate(from);
+				const end = style && locate(pos, true);
+				if (!start || !end) {
+					return;
+				}
+				const range = new Range();
+				range.setStart(...start);
+				range.setEnd(...end);
+				for (const name of style.split(' ')) {
+					if (!codeHighlights[name]) {
+						// 用 window.Highlight：本檔的 Highlight 是 CK5 螢光筆外掛
+						codeHighlights[name] = new window.Highlight();
+						CSS.highlights.set(`cm-${name}`, codeHighlights[name]);
+					}
+					codeHighlights[name].add(range);
+					mine.push([codeHighlights[name], range]);
+				}
+			});
+		}
+	}, { priority: 'low' });
+}
+
 // 取代 CK4 pasteUploadImage 的 pasteUploadImageUrlApi：貼上的外站圖片下載到本站
 function PasteRemoteImage(editor) {
 	// 外站圖片轉存與上傳共用 upload.php（?url=）
@@ -1255,7 +1320,7 @@ export function createEditor(element, { uploadUrl, browseUrl, placeholder = '', 
 			SimpleUploadAdapter, SourceEditing, Strikethrough, Style, Subscript, Superscript, Table, TableCaption,
 			TableCellProperties, TableColumnResize, TableLayout, TableProperties, TableToolbar, TextTransformation,
 			TodoList, Underline, WordCount, PageBreak,
-			BootstrapTable, ImageDialog, LinkDialog, PasteRemoteImage, PlainTextPaste, FontAwesome, TextDropdowns, ColumnWidget, ColumnTemplates
+			BootstrapTable, ImageDialog, LinkDialog, PasteRemoteImage, PlainTextPaste, SourceEditingCodeMirror, CodeBlockHighlight, FontAwesome, TextDropdowns, ColumnWidget, ColumnTemplates
 		],
 		// 取代 CK4 embed/embedsemantic：直接輸出 iframe，前台不需額外 JS
 		mediaEmbed: { previewsInData: true },
@@ -1302,6 +1367,8 @@ export function createEditor(element, { uploadUrl, browseUrl, placeholder = '', 
 		style: { definitions: [...styleDefinitions, ...styles] },
 		// 取代 CK4 smiley；表情資料放本站（取自 cdn.ckeditor.com/ckeditor5/data/emoji/16/en.json），不依賴外部 CDN
 		emoji: { definitionsUrl: new URL('emoji-en.json', import.meta.url).href },
+		// 原始碼模式語法高亮（sourceeditingcodemirror.js，CodeMirror 5 選項）
+		sourceEditingCodeMirror: { options: { mode: 'htmlmixed', lineNumbers: true, lineWrapping: true, viewportMargin: Infinity } },
 		table: { contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells', 'tableProperties', 'tableCellProperties'] },
 		// 同目錄 upload.php：需登入、同站來源，回傳 {url} 符合 SimpleUploadAdapter
 		simpleUpload: { uploadUrl }

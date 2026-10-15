@@ -108,6 +108,7 @@ class CkEditor5
         $css = array_merge([
             $xoTheme ? $fa : XOOPS_URL . "/{$fa}",
             "{$pkg_url}/ckeditor5.css",
+            XOOPS_URL . '/modules/tad_base/packages/codemirror/codemirror.css',
             "{$pkg_url}/style.css",
             "{$pkg_url}/ckeditor.css",
             "{$pkg_url}/fonts.css",

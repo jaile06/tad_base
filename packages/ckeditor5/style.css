@@ -7,6 +7,48 @@
 	min-height: var(--ck5-height, 300px);
 }
 
+/* 原始碼模式 CodeMirror（sourceeditingcodemirror.js），取自該套件 theme/sourceeditingcodemirror.css */
+.ck-source-editing-area .cm-s-default {
+	border: 1px solid var(--ck-color-base-border);
+	border-radius: var(--ck-border-radius);
+	border-top-left-radius: 0;
+	border-top-right-radius: 0;
+	font-size: var(--ck-font-size-normal);
+	line-height: var(--ck-line-height-base);
+}
+.ck-source-editing-area .CodeMirror-focused {
+	border: var(--ck-focus-ring);
+	box-shadow: var(--ck-inner-shadow), 0 0;
+	outline: none;
+}
+.ck-source-editing-area::after {
+	content: "";
+	display: none;
+}
+/* 程式碼區塊語法上色（main.js CodeBlockHighlight），配色同 CodeMirror 預設主題 */
+::highlight(cm-keyword) { color: #708; }
+::highlight(cm-atom) { color: #219; }
+::highlight(cm-number) { color: #164; }
+::highlight(cm-def) { color: #00f; }
+::highlight(cm-variable-2) { color: #05a; }
+::highlight(cm-variable-3), ::highlight(cm-type) { color: #085; }
+::highlight(cm-comment) { color: #a50; }
+::highlight(cm-string) { color: #a11; }
+::highlight(cm-string-2) { color: #f50; }
+::highlight(cm-meta), ::highlight(cm-qualifier) { color: #555; }
+::highlight(cm-builtin) { color: #30a; }
+::highlight(cm-bracket) { color: #997; }
+::highlight(cm-tag) { color: #170; }
+::highlight(cm-attribute) { color: #00c; }
+::highlight(cm-property) { color: #219; }
+::highlight(cm-operator) { color: #a67f59; }
+
+/* 高度隨內容長，至少與編輯區同高 */
+.ck-source-editing-area .CodeMirror {
+	height: auto;
+	min-height: var(--ck5-height, 300px);
+}
+
 /* 仿 CK4 moono：灰色漸層工具列、分隔線明顯，舊使用者較熟悉 */
 .ck.ck-editor__top .ck-toolbar {
 	background: linear-gradient(#f9f9f9, #e3e3e3);
