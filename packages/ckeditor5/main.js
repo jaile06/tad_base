@@ -406,18 +406,18 @@ function openImageDialog(editor) {
 	const browseButton = target => browseFor(browseUrl, target);
 
 	const f = {
-		src: input(img?.getAttribute('src')),
-		alt: input(img?.getAttribute('alt')),
-		width: input(initial.width, { size: 5 }),
-		height: input(initial.height, { size: 5 }),
-		border: input(initial.border, { size: 5 }),
-		hspace: input(initial.hspace, { size: 5 }),
-		vspace: input(initial.vspace, { size: 5 }),
-		align: select(initial.align, [['', '<未設定>'], ['left', '靠左'], ['right', '靠右']]),
-		responsive: select(responsive, [['', '<未設定>'], ['img-fluid', '自適應圖片'], ['img-fluid img-thumbnail', '自適應圖框']]),
-		className: input(classes.filter(c => !fluid || !['img-fluid', 'img-thumbnail'].includes(c)).join(' ')),
+		src: input(img?.getAttribute('src'), { placeholder: '請輸入影像連結網址...', className: 'font-mono' }),
+		alt: input(img?.getAttribute('alt'), { placeholder: '針對視覺障礙或圖片無法顯示時所顯示的說明文字' }),
+		width: input(initial.width, { size: 5, className: 'text-center font-medium' }),
+		height: input(initial.height, { size: 5, className: 'text-center font-medium' }),
+		border: input(initial.border, { placeholder: '例如: 0 或 1px solid #ccc' }),
+		hspace: input(initial.hspace, { placeholder: '0', className: 'text-center' }),
+		vspace: input(initial.vspace, { placeholder: '0', className: 'text-center' }),
+		align: select(initial.align, [['', '<未設定>'], ['left', '靠左對齊 (Left)'], ['center', '置中對齊 (Center)'], ['right', '靠右對齊 (Right)']]),
+		responsive: select(responsive, [['', '<未設定>'], ['img-fluid', '自適應圖片 (img-fluid)'], ['img-fluid img-thumbnail', '自適應圖框 (img-thumbnail)']]),
+		className: input(classes.filter(c => !fluid || !['img-fluid', 'img-thumbnail'].includes(c)).join(' '), { className: 'font-mono' }),
 		title: input(img?.getAttribute('title')),
-		style: input(css.cssText)
+		style: input(css.cssText, { className: 'font-mono' })
 	};
 
 	// 依欄位組出 <img>；預覽與確定共用
@@ -435,7 +435,11 @@ function openImageDialog(editor) {
 		}
 		['margin-left', 'margin-right'].forEach(p => set(p, f.hspace.value));
 		['margin-top', 'margin-bottom'].forEach(p => set(p, f.vspace.value));
-		if (f.align.value) {
+		if (f.align.value === 'center') {
+			style.setProperty('display', 'block');
+			style.setProperty('margin-left', 'auto');
+			style.setProperty('margin-right', 'auto');
+		} else if (f.align.value) {
 			style.setProperty('float', f.align.value);
 		}
 		const image = document.createElement('img');
@@ -455,12 +459,17 @@ function openImageDialog(editor) {
 	// 鎖定比例、重設為原始大小，依圖片實際尺寸計算
 	let natural = null;
 	let locked = true;
-	const lock = el('button', { type: 'button', className: 'ck5-image-icon', textContent: '🔒', title: '鎖定比例', ariaLabel: '鎖定比例' });
+	const lock = el('button', { type: 'button', className: 'ck5-image-icon ck5-lock-btn', title: '鎖定長寬比例', ariaLabel: '鎖定長寬比例' },
+		svgIcon('M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'));
 	lock.onclick = () => {
 		locked = !locked;
-		lock.textContent = locked ? '🔒' : '🔓';
+		lock.replaceChildren(svgIcon(locked
+			? 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
+			: 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z'));
+		lock.classList.toggle('is-unlocked', !locked);
 	};
-	const reset = el('button', { type: 'button', className: 'ck5-image-icon', textContent: '↻', title: '重設大小', ariaLabel: '重設大小' });
+	const reset = el('button', { type: 'button', className: 'ck5-image-icon ck5-reset-btn', title: '重設原始尺寸', ariaLabel: '重設原始尺寸' },
+		svgIcon('M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'));
 	reset.onclick = () => {
 		if (natural) {
 			f.width.value = natural.w;
@@ -475,6 +484,7 @@ function openImageDialog(editor) {
 	};
 	f.width.addEventListener('input', () => keepRatio(f.width, f.height, 'w', 'h'));
 	f.height.addEventListener('input', () => keepRatio(f.height, f.width, 'h', 'w'));
+
 	const loadNatural = () => {
 		natural = null;
 		const probe = new Image();
@@ -484,22 +494,42 @@ function openImageDialog(editor) {
 	f.src.addEventListener('input', loadNatural);
 	loadNatural();
 
-	const preview = el('div', { className: 'ck5-image-preview' });
+	const preview = el('div', { className: 'ck5-image-preview bg-checker' });
 	function update() {
-		preview.replaceChildren(...(f.src.value.trim() ? [buildImage()] : []),
-			'這是預覽用的文字，用來顯示圖片的對齊、框線與間距效果。'.repeat(4));
+		const imgNode = f.src.value.trim() ? buildImage() : null;
+		preview.replaceChildren(
+			el('div', { className: 'ck5-preview-card' },
+				...(imgNode ? [imgNode] : [
+					el('div', { className: 'ck5-preview-empty' },
+						svgIcon('M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z', 32, 32),
+						el('span', { textContent: '尚未選取圖片' }))
+				]),
+				el('div', { className: 'ck5-preview-text' }, '這是預覽用的文字，用來顯示圖片的對齊、框線與間距效果。'.repeat(4))),
+			el('div', { className: 'ck5-preview-badge' }, el('span', { textContent: '即時預覽' }))
+		);
 	}
 
+	const urlField = el('div', { className: 'ck5-image-field' },
+		el('div', { className: 'ck5-image-label-row' },
+			el('span', { innerHTML: 'URL <span class="ck5-required">*</span>' }),
+			el('span', { className: 'ck5-image-hint', textContent: '支援 JPG, PNG, GIF' })),
+		f.src);
+
 	const imagePanel = el('div', { className: 'ck5-image-panel', role: 'tabpanel' },
-		el('div', { className: 'ck5-image-row' }, field('URL *', f.src), browseButton(f.src)),
+		el('div', { className: 'ck5-image-row' }, urlField, browseButton(f.src)),
 		field('替代文字', f.alt),
 		el('div', { className: 'ck5-image-columns' },
 			el('div', { className: 'ck5-image-sizes' },
-				el('div', { className: 'ck5-image-row' }, field('寬度', f.width), lock, reset),
+				el('div', { className: 'ck5-image-field' },
+					el('span', { textContent: '寬度' }),
+					el('div', { className: 'ck5-image-row' }, f.width, lock, reset)),
 				field('高度', f.height),
-				field('HSpace', f.hspace),
-				field('VSpace', f.vspace)),
-			el('div', { className: 'ck5-image-field ck5-image-preview-wrap' }, el('span', { textContent: '預覽' }), preview)),
+				el('div', { className: 'ck5-image-subgrid' },
+					field('HSpace', f.hspace),
+					field('VSpace', f.vspace))),
+			el('div', { className: 'ck5-image-field ck5-image-preview-wrap' },
+				el('span', { textContent: '預覽' }),
+				preview)),
 		el('div', { className: 'ck5-image-grid' }, field('框線', f.border), field('對齊方式', f.align), field('自適應', f.responsive)),
 		cssSection(f, '影像屬性'));
 
@@ -536,6 +566,13 @@ function openImageDialog(editor) {
 	f.src.focus();
 }
 
+// SVG 圖示小工具
+const svgIcon = (d, w = 16, h = 16, vb = '0 0 24 24') => {
+	const span = el('span', { className: 'ck5-svg' });
+	span.innerHTML = `<svg width="${w}" height="${h}" fill="none" stroke="currentColor" viewBox="${vb}"><path d="${d}" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>`;
+	return span;
+};
+
 // 仿 CK4 對話框共用的欄位與外框
 const input = (value, props = {}) => el('input', { type: 'text', value: value || '', ...props });
 const select = (value, options) => {
@@ -551,12 +588,14 @@ const keepTarget = (a, blank) => {
 const field = (label, control) => el('label', { className: 'ck5-image-field' }, el('span', { textContent: label }), control);
 const browseFor = (browseUrl, target, startType = 'image') => browseUrl
 	? el('button', {
-		type: 'button', textContent: '瀏覽並上傳',
+		type: 'button', className: 'ck5-btn-browse',
 		onclick: () => openBrowser(browseUrl, '瀏覽並上傳', url => {
 			target.value = url;
 			target.dispatchEvent(new Event('input', { bubbles: true }));
 		}, startType)
-	})
+	},
+	svgIcon('M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12'),
+	el('span', { textContent: '瀏覽並上傳' }))
 	: '';
 const insertHtml = (editor, html) => {
 	editor.model.insertContent(editor.data.toModel(editor.data.processor.toView(html)));
@@ -564,7 +603,7 @@ const insertHtml = (editor, html) => {
 };
 // 標題、class、style 三欄，影像與連結共用
 const cssSection = (f, legend = '超連結屬性') => el('fieldset', {}, el('legend', { textContent: legend }),
-	el('div', { className: 'ck5-image-grid' }, field('標題（title）', f.title), field('類別（class）', f.className), field('樣式（style）', f.style)));
+	el('div', { className: 'ck5-image-grid' }, field('標題 (title)', f.title), field('類別 (class)', f.className), field('樣式 (style)', f.style)));
 
 // 連結欄位（通訊協定＋URL、目標、CSS 樣式表），連結對話框與影像的「連結」頁籤共用
 function linkFields(a) {
@@ -626,11 +665,12 @@ function formDialog(title, panel, invalid, onOk) {
 		el('form', { method: 'dialog' },
 			el('div', { className: 'ck5-browser-header' },
 				el('strong', { textContent: title }),
-				el('button', { value: 'cancel', textContent: '×', ariaLabel: '關閉' })),
+				el('button', { value: 'cancel', className: 'ck5-btn-close', ariaLabel: '關閉' },
+					svgIcon('M6 18L18 6M6 6l12 12', 18, 18))),
 			panel,
 			el('div', { className: 'ck5-browser-buttons ck5-image-footer' },
-				ok,
-				el('button', { value: 'cancel', textContent: '取消' }))));
+				el('button', { value: 'cancel', textContent: '取消' }),
+				ok)));
 	dialog.addEventListener('close', () => {
 		dialog.remove();
 		if (dialog.returnValue === 'ok') {
@@ -641,6 +681,7 @@ function formDialog(title, panel, invalid, onOk) {
 	dialog.showModal();
 	return dialog;
 }
+
 
 // 取代 CK4 連結對話框：只提供網址（mailto:、tel:、# 選 <其他> 直接打），雙擊連結可修改
 // ponytail: 目標不提供 CK4 的「快顯視窗」（要產生 onclick 的 window.open）
