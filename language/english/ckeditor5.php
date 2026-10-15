@@ -1,0 +1,35 @@
+<?php
+// packages/ckeditor5 的 browse.php、upload.php 錯誤訊息（前端介面字串在 packages/ckeditor5/translations/tad-zh.js）
+define('_MD_CK5_ILLEGAL',          'Illegal request');
+define('_MD_CK5_LOGIN',            'Please log in first');
+define('_MD_CK5_BAD_PARAM',        'Invalid parameters');
+define('_MD_CK5_BAD_PATH',         'Invalid path');
+define('_MD_CK5_NO_PERM',          'You do not have permission to use this module');
+define('_MD_CK5_MKDIR_FAIL',       'Unable to create the folder');
+define('_MD_CK5_NOT_FOUND',        'File not found');
+define('_MD_CK5_ADMIN_ONLY',       'Only module administrators can rename, move or delete');
+define('_MD_CK5_BAD_NAME',         'Names may only contain letters, digits, underscores and hyphens');
+define('_MD_CK5_NAME_EXISTS',      'A file or folder with the same name already exists');
+define('_MD_CK5_CREATE_FAIL',      'Failed to create');
+define('_MD_CK5_LOCKED',           'This is a module attachment (or the folder contains module attachments). Manage it from its own attachment feature.');
+define('_MD_CK5_DELETE_FAIL',      'Failed to delete');
+define('_MD_CK5_BAD_DEST',         'Invalid destination folder');
+define('_MD_CK5_DEST_MISSING',     'The destination folder does not exist');
+define('_MD_CK5_MOVE_INTO_SELF',   'A folder cannot be moved into itself');
+define('_MD_CK5_DEST_EXISTS',      'A file or folder with the same name already exists at the destination');
+define('_MD_CK5_OP_FAIL',          'Operation failed');
+define('_MD_CK5_BAD_OP',           'Unsupported action');
+define('_MD_CK5_BAD_URL',          'Invalid URL');
+define('_MD_CK5_NO_CURL',          'cURL is not enabled on the server');
+define('_MD_CK5_DNS_FAIL',         'Unable to resolve the URL');
+define('_MD_CK5_PRIVATE_IP',       'Private network addresses are not allowed');
+define('_MD_CK5_REMOTE_FAIL',      'Failed to download the remote image');
+define('_MD_CK5_TOO_LARGE',        'The file exceeds the server upload size limit');
+define('_MD_CK5_UPLOAD_FAIL',      'Upload failed');
+define('_MD_CK5_IMAGE_ONLY',       'Only JPG, PNG, GIF, WebP and AVIF images are accepted');
+define('_MD_CK5_LOCKED_REPLACE',   'This is a module attachment and cannot be overwritten');
+define('_MD_CK5_ADMIN_REPLACE',    'Only module administrators can replace old files');
+define('_MD_CK5_SAVE_FAIL',        'Failed to save the file');
+define('_MD_CK5_REMOTE_NOT_IMAGE', 'The remote file is not a supported image');
+define('_MD_CK5_NO_FILE',          'No file received');
+define('_MD_CK5_BAD_EXT',          '.%s files are not accepted');

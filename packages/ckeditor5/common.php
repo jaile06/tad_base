@@ -3,6 +3,7 @@
 use Xmf\Request;
 
 require_once dirname(__DIR__, 4) . '/mainfile.php';
+xoops_loadLanguage('ckeditor5', 'tad_base');
 header('Content-Type: application/json; charset=utf-8');
 
 function ck5_fail($message, $code = 400)
@@ -26,7 +27,7 @@ function ck5_same_site($url)
 function ck5_require_same_origin()
 {
     if (!ck5_same_site($_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? '')) {
-        ck5_fail('非法調用', 403);
+        ck5_fail(_MD_CK5_ILLEGAL, 403);
     }
 }
 
@@ -45,7 +46,7 @@ function ck5_clean_name($name, $fallback)
 }
 
 if (!$xoopsUser) {
-    ck5_fail('請先登入', 403);
+    ck5_fail(_MD_CK5_LOGIN, 403);
 }
 
 $ck5_type = Request::getString('type') === 'file' ? 'file' : 'image';
@@ -53,17 +54,17 @@ $mod_dir  = Request::getString('mod_dir');
 $subDir   = trim(str_replace('\\', '/', Request::getString('subDir')), '/');
 $path     = trim(str_replace('\\', '/', Request::getString('path')), '/');
 if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $mod_dir) || !preg_match('/^[a-zA-Z0-9_\-\/]*$/', $subDir) || strpos($subDir, '..') !== false) {
-    ck5_fail('參數錯誤');
+    ck5_fail(_MD_CK5_BAD_PARAM);
 }
 foreach ($path === '' ? [] : explode('/', $path) as $seg) {
     if (!ck5_valid_segment($seg)) {
-        ck5_fail('路徑錯誤');
+        ck5_fail(_MD_CK5_BAD_PATH);
     }
 }
 // mod_dir 必須是已安裝、且使用者可讀取的模組，不能隨意在 uploads 下開資料夾或瀏覽別的模組附件
 $ck5_module = xoops_getHandler('module')->getByDirname($mod_dir);
 if (!$ck5_module || !xoops_getHandler('groupperm')->checkRight('module_read', $ck5_module->getVar('mid'), $xoopsUser->getGroups())) {
-    ck5_fail('沒有使用此模組的權限', 403);
+    ck5_fail(_MD_CK5_NO_PERM, 403);
 }
 
 // 編輯器給的根目錄；使用者只能在它底下的子資料夾活動
@@ -77,7 +78,7 @@ function ck5_current_dir($create = false)
     global $ck5_rel;
     $dir = XOOPS_ROOT_PATH . $ck5_rel;
     if ($create && !is_dir($dir) && !mkdir($dir, 0755, true)) {
-        ck5_fail('無法建立資料夾', 500);
+        ck5_fail(_MD_CK5_MKDIR_FAIL, 500);
     }
     $real = realpath($dir);
     $base = realpath(XOOPS_ROOT_PATH . '/uploads');
@@ -113,7 +114,7 @@ function ck5_item($name)
     global $ck5_rel;
     $dir = ck5_current_dir();
     if ($dir === false || !ck5_valid_segment($name) || !file_exists($dir . $name)) {
-        ck5_fail('找不到檔案');
+        ck5_fail(_MD_CK5_NOT_FOUND);
     }
     return [$dir . $name, $ck5_rel . $name . (is_dir($dir . $name) ? '/' : '')];
 }

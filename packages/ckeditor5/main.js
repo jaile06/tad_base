@@ -82,7 +82,13 @@ import {
 } from './ckeditor5.js';
 
 import translations from './translations/zh.js';
+import tadZh from './translations/tad-zh.js';
 import SourceEditingCodeMirror from './sourceeditingcodemirror.js';
+
+// 自訂介面的語系：原文為英文，zh 查 tad-zh.js；%0、%1 代入參數（同 CK5 的 t()）
+// ponytail: 只有繁中與英文，簡中也顯示繁中；要加語言就多一份字典
+let lang = 'zh';
+const t = (text, ...args) => ((lang === 'zh' && tadZh[text]) || text).replace(/%(\d)/g, (m, i) => args[i] ?? m);
 
 // 照 CK4 config.js 的同名工具列排列（'-' 換行），舊使用者找得到原本的按鈕
 // CK4 的 Image、Link 對話框以 imageDialog、linkDialog 對應（內含瀏覽伺服器）；Unlink 在連結的浮動工具列
@@ -141,23 +147,23 @@ const fontSizeOptions = ['default', ...[8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 2
 
 // 對應 CK4 CkEditor::getStyle()（只支援 class）；陰影標題見 TextShadowStyle，自適應圖片在影像對話框，「語法」用 Ctrl+E 或 `文字`
 // 新內容只輸出 Bootstrap 5 class；舊文章的 BS3/4 class 由 GeneralHtmlSupport 原樣保留
-const styleDefinitions = [
-	['陰影標題h2', 'h2', 'ck5-text-shadow'],
-	['陰影標題h3', 'h3', 'ck5-text-shadow'],
-	['Info 提示框', 'div', 'alert alert-info'],
-	['Success 提示框', 'div', 'alert alert-success'],
-	['Warning 提示框', 'div', 'alert alert-warning'],
-	['Danger 提示框', 'div', 'alert alert-danger'],
-	['公文編號「一、(一)、１」', 'ol', 'paper-list'],
-	['巢狀清單「1.、(1)、A.」', 'ol', 'my-list'],
-	['清單「壹、貳」', 'ol', 'big-tw'],
-	['清單「一、二」', 'ol', 'small-tw'],
-	['清單「(一)、(二)」', 'ol', 'brackets-tw'],
-	['清單「1.、2.」', 'ol', 'dot-num'],
-	['清單「(1)、(2)」', 'ol', 'brackets-num'],
+const styleDefinitions = () => [
+	[t('Shadow heading h2'), 'h2', 'ck5-text-shadow'],
+	[t('Shadow heading h3'), 'h3', 'ck5-text-shadow'],
+	[t('Info alert'), 'div', 'alert alert-info'],
+	[t('Success alert'), 'div', 'alert alert-success'],
+	[t('Warning alert'), 'div', 'alert alert-warning'],
+	[t('Danger alert'), 'div', 'alert alert-danger'],
+	[t('Official numbering (一、(一)、１)'), 'ol', 'paper-list'],
+	[t('Nested list (1. (1) A.)'), 'ol', 'my-list'],
+	[t('List (壹、貳)'), 'ol', 'big-tw'],
+	[t('List (一、二)'), 'ol', 'small-tw'],
+	[t('List ((一)、(二))'), 'ol', 'brackets-tw'],
+	[t('List (1. 2.)'), 'ol', 'dot-num'],
+	[t('List ((1) (2))'), 'ol', 'brackets-num'],
 	...['secondary', 'primary', 'success', 'info', 'warning', 'danger', 'light', 'dark']
-		.map(c => [`${c[0].toUpperCase()}${c.slice(1)} 徽章`, 'span', `badge text-bg-${c}`]),
-	['按鍵', 'kbd', 'kbd']
+		.map(c => [t('%0 badge', `${c[0].toUpperCase()}${c.slice(1)}`), 'span', `badge text-bg-${c}`]),
+	[t('Keyboard key'), 'kbd', 'kbd']
 ].map(([name, element, cls]) => ({ name, element, classes: cls.split(' ') }));
 
 // 對應 CK4 config.js 的 font_names（「顯示名稱/字型」），@font-face 在 fonts.css
@@ -171,7 +177,7 @@ const fontFamilyOptions = ['default', ...'851電機文字/851DianJiWenZiTi;莫�
 function TextDropdowns(editor) {
 	const titles = Object.fromEntries(fontFamilyOptions.filter(o => o.model).map(o => [o.model, o.title]));
 	const sizes = Object.fromEntries(fontSizeOptions.filter(o => o.model).map(o => [o.model, o.title]));
-	[['fontFamily', '字型', v => titles[v] || v.split(',')[0].replace(/["']/g, '')], ['fontSize', '大小', v => sizes[v] || v]].forEach(([name, label, format]) => {
+	[['fontFamily', t('Font'), v => titles[v] || v.split(',')[0].replace(/["']/g, '')], ['fontSize', t('Size'), v => sizes[v] || v]].forEach(([name, label, format]) => {
 		editor.ui.componentFactory.add(`${name}Text`, () => {
 			const dropdown = editor.ui.componentFactory.create(name);
 			dropdown.buttonView.set({ withText: true, icon: undefined });
@@ -186,17 +192,16 @@ function TextDropdowns(editor) {
 // 版型是 widget（同 CK4）：點外框可整組選取、按 Delete 整組刪除，各欄內容可直接編輯
 // 各欄只放文字，不預插佔位圖
 const column = (cls, text) => `<div class="${cls}"><p>${text}</p></div>`;
-const columns = n => Array.from({ length: n }, () => column(`col-sm-${12 / n}`, n === 2 ? '輸入內容' : '輸入文字')).join('');
-const sidebar = column('col-sm-4', '輸入內容');
-const main = column('col-sm-8', '輸入內容');
-const columnTemplates = [
-	['新增 1:2 雙欄', `<div class="row">${sidebar}${main}</div>`],
-	['新增 2:1 雙欄', `<div class="row">${main}${sidebar}</div>`],
-	['新增 2 欄', `<div class="row">${columns(2)}</div>`],
-	['新增 3 欄', `<div class="row">${columns(3)}</div>`],
-	['新增 4 欄', `<div class="row">${columns(4)}</div>`],
-	['新增 6 欄', `<div class="row">${columns(6)}</div>`]
-];
+const columnTemplates = () => {
+	const columns = n => Array.from({ length: n }, () => column(`col-sm-${12 / n}`, n === 2 ? t('Enter content') : t('Enter text'))).join('');
+	const sidebar = column('col-sm-4', t('Enter content'));
+	const main = column('col-sm-8', t('Enter content'));
+	return [
+		[t('Add 1:2 two columns'), `<div class="row">${sidebar}${main}</div>`],
+		[t('Add 2:1 two columns'), `<div class="row">${main}${sidebar}</div>`],
+		...[2, 3, 4, 6].map(n => [t('Add %0 columns', n), `<div class="row">${columns(n)}</div>`])
+	];
+};
 const IconColumns = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2 3h4.5v14H2zm5.75 0h4.5v14h-4.5zM13.5 3H18v14h-4.5z"/></svg>';
 
 // 視為版型的 div.row：帶 CK4 舊版型 class，或子元素全是 col-* 欄位；其他 div 仍交給 GeneralHtmlSupport
@@ -237,7 +242,7 @@ function ColumnWidget(editor) {
 	conversion.for('dataDowncast').elementToElement({ model: 'bsCol', view: (m, { writer }) => writer.createContainerElement('div', attrs(m)) });
 	conversion.for('editingDowncast').elementToElement({
 		model: 'bsRow',
-		view: (m, { writer }) => toWidget(writer.createContainerElement('div', attrs(m)), writer, { label: '多欄版型', hasSelectionHandle: true })
+		view: (m, { writer }) => toWidget(writer.createContainerElement('div', attrs(m)), writer, { label: t('Column layout'), hasSelectionHandle: true })
 	});
 	conversion.for('editingDowncast').elementToElement({
 		model: 'bsCol',
@@ -313,9 +318,9 @@ function CodeShortcut(editor) {
 function ColumnTemplates(editor) {
 	editor.ui.componentFactory.add('columnTemplates', locale => {
 		const dropdown = createDropdown(locale);
-		dropdown.buttonView.set({ label: '插入多欄版型', icon: IconColumns, tooltip: true });
+		dropdown.buttonView.set({ label: t('Insert column layout'), icon: IconColumns, tooltip: true });
 		const items = new Collection();
-		columnTemplates.forEach(([label, html]) => items.add({ type: 'button', model: new UIModel({ label, html, withText: true }) }));
+		columnTemplates().forEach(([label, html]) => items.add({ type: 'button', model: new UIModel({ label, html, withText: true }) }));
 		addListToDropdown(dropdown, items);
 		dropdown.on('execute', evt => insertHtml(editor, evt.source.html));
 		return dropdown;
@@ -342,7 +347,7 @@ function ImageDialog(editor) {
 	const open = () => openImageDialog(editor);
 	editor.ui.componentFactory.add('imageDialog', locale => {
 		const button = new ButtonView(locale);
-		button.set({ label: '影像', icon: IconImage, tooltip: true });
+		button.set({ label: t('Image'), icon: IconImage, tooltip: true });
 		button.on('execute', open);
 		return button;
 	});
@@ -406,15 +411,15 @@ function openImageDialog(editor) {
 	const browseButton = target => browseFor(browseUrl, target);
 
 	const f = {
-		src: input(img?.getAttribute('src'), { placeholder: '請輸入影像連結網址...', className: 'font-mono' }),
-		alt: input(img?.getAttribute('alt'), { placeholder: '針對視覺障礙或圖片無法顯示時所顯示的說明文字' }),
+		src: input(img?.getAttribute('src'), { placeholder: t('Enter the image URL...'), className: 'font-mono' }),
+		alt: input(img?.getAttribute('alt'), { placeholder: t('Text shown to visually impaired users or when the image cannot be displayed') }),
 		width: input(initial.width, { size: 5, className: 'text-center font-medium' }),
 		height: input(initial.height, { size: 5, className: 'text-center font-medium' }),
-		border: input(initial.border, { placeholder: '例如: 0 或 1px solid #ccc' }),
+		border: input(initial.border, { placeholder: t('e.g. 0 or 1px solid #ccc') }),
 		hspace: input(initial.hspace, { placeholder: '0', className: 'text-center' }),
 		vspace: input(initial.vspace, { placeholder: '0', className: 'text-center' }),
-		align: select(initial.align, [['', '<未設定>'], ['left', '靠左對齊 (Left)'], ['center', '置中對齊 (Center)'], ['right', '靠右對齊 (Right)']]),
-		responsive: select(responsive, [['', '<未設定>'], ['img-fluid', '自適應圖片 (img-fluid)'], ['img-fluid img-thumbnail', '自適應圖框 (img-thumbnail)']]),
+		align: select(initial.align, [['', t('<not set>')], ['left', t('Left')], ['center', t('Center')], ['right', t('Right')]]),
+		responsive: select(responsive, [['', t('<not set>')], ['img-fluid', t('Responsive image (img-fluid)')], ['img-fluid img-thumbnail', t('Responsive thumbnail (img-thumbnail)')]]),
 		className: input(classes.filter(c => !fluid || !['img-fluid', 'img-thumbnail'].includes(c)).join(' '), { className: 'font-mono' }),
 		title: input(img?.getAttribute('title')),
 		style: input(css.cssText, { className: 'font-mono' })
@@ -459,7 +464,7 @@ function openImageDialog(editor) {
 	// 鎖定比例、重設為原始大小，依圖片實際尺寸計算
 	let natural = null;
 	let locked = true;
-	const lock = el('button', { type: 'button', className: 'ck5-image-icon ck5-lock-btn', title: '鎖定長寬比例', ariaLabel: '鎖定長寬比例' },
+	const lock = el('button', { type: 'button', className: 'ck5-image-icon ck5-lock-btn', title: t('Lock aspect ratio'), ariaLabel: t('Lock aspect ratio') },
 		svgIcon('M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'));
 	lock.onclick = () => {
 		locked = !locked;
@@ -468,7 +473,7 @@ function openImageDialog(editor) {
 			: 'M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z'));
 		lock.classList.toggle('is-unlocked', !locked);
 	};
-	const reset = el('button', { type: 'button', className: 'ck5-image-icon ck5-reset-btn', title: '重設原始尺寸', ariaLabel: '重設原始尺寸' },
+	const reset = el('button', { type: 'button', className: 'ck5-image-icon ck5-reset-btn', title: t('Reset to original size'), ariaLabel: t('Reset to original size') },
 		svgIcon('M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'));
 	reset.onclick = () => {
 		if (natural) {
@@ -502,36 +507,36 @@ function openImageDialog(editor) {
 				...(imgNode ? [imgNode] : [
 					el('div', { className: 'ck5-preview-empty' },
 						svgIcon('M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z', 32, 32),
-						el('span', { textContent: '尚未選取圖片' }))
+						el('span', { textContent: t('No image selected') }))
 				]),
-				el('div', { className: 'ck5-preview-text' }, '這是預覽用的文字，用來顯示圖片的對齊、框線與間距效果。'.repeat(4))),
-			el('div', { className: 'ck5-preview-badge' }, el('span', { textContent: '即時預覽' }))
+				el('div', { className: 'ck5-preview-text' }, t('This is sample text for previewing image alignment, border and spacing. ').repeat(4))),
+			el('div', { className: 'ck5-preview-badge' }, el('span', { textContent: t('Live preview') }))
 		);
 	}
 
 	const urlField = el('div', { className: 'ck5-image-field' },
 		el('div', { className: 'ck5-image-label-row' },
 			el('span', { innerHTML: 'URL <span class="ck5-required">*</span>' }),
-			el('span', { className: 'ck5-image-hint', textContent: '支援 JPG, PNG, GIF' })),
+			el('span', { className: 'ck5-image-hint', textContent: t('Supports JPG, PNG, GIF') })),
 		f.src);
 
 	const imagePanel = el('div', { className: 'ck5-image-panel', role: 'tabpanel' },
 		el('div', { className: 'ck5-image-row' }, urlField, browseButton(f.src)),
-		field('替代文字', f.alt),
+		field(t('Alternative text'), f.alt),
 		el('div', { className: 'ck5-image-columns' },
 			el('div', { className: 'ck5-image-sizes' },
 				el('div', { className: 'ck5-image-field' },
-					el('span', { textContent: '寬度' }),
+					el('span', { textContent: t('Width') }),
 					el('div', { className: 'ck5-image-row' }, f.width, lock, reset)),
-				field('高度', f.height),
+				field(t('Height'), f.height),
 				el('div', { className: 'ck5-image-subgrid' },
 					field('HSpace', f.hspace),
 					field('VSpace', f.vspace))),
 			el('div', { className: 'ck5-image-field ck5-image-preview-wrap' },
-				el('span', { textContent: '預覽' }),
+				el('span', { textContent: t('Preview') }),
 				preview)),
-		el('div', { className: 'ck5-image-grid' }, field('框線', f.border), field('對齊方式', f.align), field('自適應', f.responsive)),
-		cssSection(f, '影像屬性'));
+		el('div', { className: 'ck5-image-grid' }, field(t('Border'), f.border), field(t('Alignment'), f.align), field(t('Responsive'), f.responsive)),
+		cssSection(f, t('Image properties')));
 
 	// 「連結」頁籤與連結對話框相同，只是沒有顯示文字（內容就是圖片）
 	const link = linkFields(a);
@@ -539,7 +544,7 @@ function openImageDialog(editor) {
 	const linkPanel = el('div', { className: 'ck5-image-panel', role: 'tabpanel' }, link.protocolRow, ...link.sections);
 
 	const panels = [imagePanel, linkPanel];
-	const tabs = ['影像資訊', '連結'].map((text, i) => el('button', {
+	const tabs = [t('Image info'), t('Link')].map((text, i) => el('button', {
 		type: 'button', textContent: text, role: 'tab',
 		onclick: () => show(i)
 	}));
@@ -549,7 +554,7 @@ function openImageDialog(editor) {
 	}
 	show(0);
 
-	const dialog = formDialog('影像屬性', el('div', {}, ...panels), () => !f.src.value.trim() && (show(0), f.src), () => {
+	const dialog = formDialog(t('Image properties'), el('div', {}, ...panels), () => !f.src.value.trim() && (show(0), f.src), () => {
 		let node = buildImage();
 		if (link.href()) {
 			const anchor = link.build();
@@ -559,7 +564,7 @@ function openImageDialog(editor) {
 		insertHtml(editor, node.outerHTML);
 	});
 	dialog.querySelector('.ck5-browser-header strong')
-		.after(el('div', { className: 'ck5-browser-tabs', role: 'tablist', ariaLabel: '影像屬性' }, ...tabs));
+		.after(el('div', { className: 'ck5-browser-tabs', role: 'tablist', ariaLabel: t('Image properties') }, ...tabs));
 	dialog.addEventListener('input', update);
 	dialog.addEventListener('change', update);
 	update();
@@ -589,21 +594,21 @@ const field = (label, control) => el('label', { className: 'ck5-image-field' }, 
 const browseFor = (browseUrl, target, startType = 'image') => browseUrl
 	? el('button', {
 		type: 'button', className: 'ck5-btn-browse',
-		onclick: () => openBrowser(browseUrl, '瀏覽並上傳', url => {
+		onclick: () => openBrowser(browseUrl, t('Browse and upload'), url => {
 			target.value = url;
 			target.dispatchEvent(new Event('input', { bubbles: true }));
 		}, startType)
 	},
 	svgIcon('M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12'),
-	el('span', { textContent: '瀏覽並上傳' }))
+	el('span', { textContent: t('Browse and upload') }))
 	: '';
 const insertHtml = (editor, html) => {
 	editor.model.insertContent(editor.data.toModel(editor.data.processor.toView(html)));
 	editor.editing.view.focus();
 };
 // 標題、class、style 三欄，影像與連結共用
-const cssSection = (f, legend = '超連結屬性') => el('fieldset', {}, el('legend', { textContent: legend }),
-	el('div', { className: 'ck5-image-grid' }, field('標題 (title)', f.title), field('類別 (class)', f.className), field('樣式 (style)', f.style)));
+const cssSection = (f, legend = t('Link attributes')) => el('fieldset', {}, el('legend', { textContent: legend }),
+	el('div', { className: 'ck5-image-grid' }, field(t('Title'), f.title), field(t('Class'), f.className), field(t('Style'), f.style)));
 
 // 連結欄位（通訊協定＋URL、目標、CSS 樣式表），連結對話框與影像的「連結」頁籤共用
 function linkFields(a) {
@@ -611,7 +616,7 @@ function linkFields(a) {
 	const href = a?.getAttribute('href') || '';
 	const proto = PROTOCOLS.find(p => href.toLowerCase().startsWith(p)) ?? (href ? '' : 'https://');
 	const f = {
-		protocol: select(proto, [...PROTOCOLS.map(p => [p, p]), ['', '<其他>']]),
+		protocol: select(proto, [...PROTOCOLS.map(p => [p, p]), ['', t('<other>')]]),
 		url: input(href.slice(proto.length)),
 		blank: el('input', { type: 'checkbox', checked: a?.getAttribute('target') === '_blank' }),
 		title: input(a?.getAttribute('title')),
@@ -632,9 +637,9 @@ function linkFields(a) {
 	return {
 		url: f.url,
 		href: buildHref,
-		protocolRow: el('div', { className: 'ck5-image-row ck5-link-protocol' }, field('通訊協定', f.protocol), field('URL *', f.url)),
+		protocolRow: el('div', { className: 'ck5-image-row ck5-link-protocol' }, field(t('Protocol'), f.protocol), field('URL *', f.url)),
 		sections: [
-			el('fieldset', {}, el('legend', { textContent: '目標' }), el('label', { className: 'ck5-link-check' }, f.blank, '另開視窗')),
+			el('fieldset', {}, el('legend', { textContent: t('Target') }), el('label', { className: 'ck5-link-check' }, f.blank, t('Open in a new window'))),
 			cssSection(f)
 		],
 		build() {
@@ -653,7 +658,7 @@ function linkFields(a) {
 
 // 單頁對話框：invalid() 回傳要聚焦的欄位時阻止送出；按確定才呼叫 onOk
 function formDialog(title, panel, invalid, onOk) {
-	const ok = el('button', { value: 'ok', textContent: '確定' });
+	const ok = el('button', { value: 'ok', textContent: t('OK') });
 	ok.addEventListener('click', e => {
 		const error = invalid();
 		if (error) {
@@ -665,11 +670,11 @@ function formDialog(title, panel, invalid, onOk) {
 		el('form', { method: 'dialog' },
 			el('div', { className: 'ck5-browser-header' },
 				el('strong', { textContent: title }),
-				el('button', { value: 'cancel', className: 'ck5-btn-close', ariaLabel: '關閉' },
+				el('button', { value: 'cancel', className: 'ck5-btn-close', ariaLabel: t('Close') },
 					svgIcon('M6 18L18 6M6 6l12 12', 18, 18))),
 			panel,
 			el('div', { className: 'ck5-browser-buttons ck5-image-footer' },
-				el('button', { value: 'cancel', textContent: '取消' }),
+				el('button', { value: 'cancel', textContent: t('Cancel') }),
 				ok)));
 	dialog.addEventListener('close', () => {
 		dialog.remove();
@@ -692,7 +697,7 @@ function LinkDialog(editor) {
 	const open = () => openLinkDialog(editor);
 	editor.ui.componentFactory.add('linkDialog', locale => {
 		const button = new ButtonView(locale);
-		button.set({ label: '連結', icon: IconLink, tooltip: true });
+		button.set({ label: t('Link'), icon: IconLink, tooltip: true });
 		button.on('execute', open);
 		return button;
 	});
@@ -727,10 +732,10 @@ function openLinkDialog(editor) {
 	const fields = linkFields(a);
 
 	const panel = el('div', { className: 'ck5-image-panel ck5-link-panel' },
-		el('div', { className: 'ck5-image-row' }, field('顯示文字', textInput), browseFor(browseUrl, fields.url, 'file')),
+		el('div', { className: 'ck5-image-row' }, field(t('Display text'), textInput), browseFor(browseUrl, fields.url, 'file')),
 		fields.protocolRow, ...fields.sections);
 
-	formDialog('連結', panel, () => !fields.href() && fields.url, () => {
+	formDialog(t('Link'), panel, () => !fields.href() && fields.url, () => {
 		const link = fields.build();
 
 		// 顯示文字沒改就保留原本內容（粗體等格式）；改了或原本沒選文字就用新文字
@@ -762,7 +767,7 @@ let faLists;
 function FontAwesome(editor) {
 	editor.ui.componentFactory.add('fontAwesome', locale => {
 		const button = new ButtonView(locale);
-		button.set({ label: 'FontAwesome 圖示', icon: IconFontAwesome, tooltip: true });
+		button.set({ label: t('FontAwesome icons'), icon: IconFontAwesome, tooltip: true });
 		button.on('execute', () => openFontAwesome(html => insertHtml(editor, html)));
 		return button;
 	});
@@ -773,15 +778,15 @@ async function openFontAwesome(onPick) {
 		.then(([solid, brands]) => ({ 'fa-solid': solid.split(','), 'fa-brands': brands.split(',') }));
 	let type = 'fa-solid';
 	let colorSet = false;
-	const search = el('input', { type: 'search', placeholder: '搜尋圖示（英文，如 home、user）', ariaLabel: '搜尋圖示' });
-	const color = el('input', { type: 'color', ariaLabel: '顏色', oninput: () => { colorSet = true; } });
-	const size = el('input', { type: 'number', min: 8, max: 200, placeholder: '預設', ariaLabel: '大小（px）' });
+	const search = el('input', { type: 'search', placeholder: t('Search icons (e.g. home, user)'), ariaLabel: t('Search icons') });
+	const color = el('input', { type: 'color', ariaLabel: t('Color'), oninput: () => { colorSet = true; } });
+	const size = el('input', { type: 'number', min: 8, max: 200, placeholder: t('Default'), ariaLabel: t('Size (px)') });
 	const fixed = el('input', { type: 'checkbox' });
 	const border = el('input', { type: 'checkbox' });
 	const spin = el('input', { type: 'checkbox' });
-	const rotate = el('select', { ariaLabel: '旋轉／翻轉' },
-		...[['', '不旋轉'], ['fa-rotate-90', '旋轉 90°'], ['fa-rotate-180', '旋轉 180°'], ['fa-rotate-270', '旋轉 270°'],
-			['fa-flip-horizontal', '水平翻轉'], ['fa-flip-vertical', '垂直翻轉'], ['fa-flip-both', '雙向翻轉']]
+	const rotate = el('select', { ariaLabel: t('Rotate / flip') },
+		...[['', t('No rotation')], ['fa-rotate-90', t('Rotate 90°')], ['fa-rotate-180', t('Rotate 180°')], ['fa-rotate-270', t('Rotate 270°')],
+			['fa-flip-horizontal', t('Flip horizontally')], ['fa-flip-vertical', t('Flip vertically')], ['fa-flip-both', t('Flip both')]]
 			.map(([value, textContent]) => el('option', { value, textContent })));
 	const grid = el('div', { className: 'ck5-browser-grid ck5-fa-grid' });
 	const tabs = [['fa-solid', 'Solid'], ['fa-brands', 'Brands']].map(([t, text]) => {
@@ -796,17 +801,17 @@ async function openFontAwesome(onPick) {
 		tab.setAttribute('aria-selected', String(t === type));
 		return tab;
 	});
-	const dialog = el('dialog', { className: 'ck5-browser', ariaLabel: 'FontAwesome 圖示' },
+	const dialog = el('dialog', { className: 'ck5-browser', ariaLabel: t('FontAwesome icons') },
 		el('form', { method: 'dialog', className: 'ck5-browser-header' },
-			el('div', { className: 'ck5-browser-tabs', role: 'tablist', ariaLabel: '類型' }, ...tabs),
-			el('button', { textContent: '×', ariaLabel: '關閉' })),
+			el('div', { className: 'ck5-browser-tabs', role: 'tablist', ariaLabel: t('Type') }, ...tabs),
+			el('button', { textContent: '×', ariaLabel: t('Close') })),
 		el('div', { className: 'ck5-browser-tools ck5-fa-tools' },
 			search,
-			el('label', {}, '顏色 ', color),
-			el('label', {}, '大小 ', size, ' px'),
-			el('label', {}, fixed, ' 固定寬度'),
-			el('label', {}, border, ' 外框'),
-			el('label', {}, spin, ' 旋轉動畫'),
+			el('label', {}, t('Color'), ' ', color),
+			el('label', {}, t('Size'), ' ', size, ' px'),
+			el('label', {}, fixed, ' ', t('Fixed width')),
+			el('label', {}, border, ' ', t('Bordered')),
+			el('label', {}, spin, ' ', t('Spin')),
 			rotate),
 		grid);
 
@@ -850,8 +855,8 @@ const formData = fields => {
 // 多選：Ctrl／⌘ 點選加減、Shift 點選範圍、Ctrl+A 全選；改名、資訊、預覽、插入只對單一項目
 // ponytail: 沒有右鍵選單、複製（只有剪下）
 const formatSize = bytes => bytes < 1024 ? `${bytes} B` : bytes < 1048576 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
-const formatTime = sec => new Date(sec * 1000).toLocaleString('zh-TW', { hour12: false });
-const TYPE_LABEL = { image: '圖片', file: '檔案' };
+const formatTime = sec => new Date(sec * 1000).toLocaleString(lang === 'zh' ? 'zh-TW' : 'en', { hour12: false });
+const typeLabel = type => type === 'image' ? t('Images') : t('Files');
 
 function openBrowser(browseUrl, title, onPick, startType = 'image') {
 	const base = new URL(browseUrl, location.href);
@@ -882,7 +887,7 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 	};
 	async function request(file, body, at) {
 		const r = await fetch(endpoint(file, at), body ? { method: 'POST', body } : {})
-			.then(x => x.json()).catch(() => ({ error: { message: '連線失敗' } }));
+			.then(x => x.json()).catch(() => ({ error: { message: t('Connection failed') } }));
 		if (r.error) {
 			message.textContent = r.error.message || String(r.error);
 		}
@@ -891,41 +896,41 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 
 	// 工具列：Font Awesome 圖示按鈕，依選取狀態啟用／停用
 	const tool = (icon, label, onclick) => el('button', { type: 'button', title: label, ariaLabel: label, onclick }, el('i', { className: `fa-solid ${icon}`, ariaHidden: 'true' }));
-	const t = {
-		back: tool('fa-arrow-left', '上一頁', () => go(back, forward)),
-		forward: tool('fa-arrow-right', '下一頁', () => go(forward, back)),
-		up: tool('fa-arrow-up', '上一層', () => navigate(type, path.split('/').slice(0, -1).join('/'))),
-		reload: tool('fa-rotate-right', '重新整理', () => { loadTree(); load(); }),
-		home: tool('fa-house', '起始位置', () => navigate(type, '')),
-		upload: tool('fa-upload', '上傳檔案', () => fileInput.click()),
-		mkdir: tool('fa-folder-plus', '新增資料夾', mkdir),
-		pick: tool('fa-check', '選擇（插入檔案或開啟資料夾）', () => single() && open(single())),
-		preview: tool('fa-eye', '預覽', () => single()?.file && window.open(single().file.url, '_blank', 'noopener')),
-		download: tool('fa-download', '下載', download),
-		info: tool('fa-circle-info', '資訊', info),
-		rename: tool('fa-pen', '改名', rename),
-		cut: tool('fa-scissors', '剪下', () => {
+	const tb = {
+		back: tool('fa-arrow-left', t('Back'), () => go(back, forward)),
+		forward: tool('fa-arrow-right', t('Forward'), () => go(forward, back)),
+		up: tool('fa-arrow-up', t('Up'), () => navigate(type, path.split('/').slice(0, -1).join('/'))),
+		reload: tool('fa-rotate-right', t('Reload'), () => { loadTree(); load(); }),
+		home: tool('fa-house', t('Home'), () => navigate(type, '')),
+		upload: tool('fa-upload', t('Upload files'), () => fileInput.click()),
+		mkdir: tool('fa-folder-plus', t('New folder'), mkdir),
+		pick: tool('fa-check', t('Select (insert file or open folder)'), () => single() && open(single())),
+		preview: tool('fa-eye', t('Preview'), () => single()?.file && window.open(single().file.url, '_blank', 'noopener')),
+		download: tool('fa-download', t('Download'), download),
+		info: tool('fa-circle-info', t('Info'), info),
+		rename: tool('fa-pen', t('Rename'), rename),
+		cut: tool('fa-scissors', t('Cut'), () => {
 			clipboard = { type, path: at(targets()[0]).path, names: targets().map(entry => entry.name) };
-			message.textContent = `已剪下 ${clipboard.names.length} 個項目，到目的資料夾按「貼上」`;
+			message.textContent = t('Cut %0 item(s). Go to the destination folder and click "Paste".', clipboard.names.length);
 			sync();
 		}),
-		paste: tool('fa-paste', '貼上', paste),
-		remove: tool('fa-trash-can', '刪除', remove),
-		icons: tool('fa-table-cells-large', '圖示檢視', () => { view = 'icons'; draw(); }),
-		list: tool('fa-list', '清單檢視', () => { view = 'list'; draw(); })
+		paste: tool('fa-paste', t('Paste'), paste),
+		remove: tool('fa-trash-can', t('Delete'), remove),
+		icons: tool('fa-table-cells-large', t('Icon view'), () => { view = 'icons'; draw(); }),
+		list: tool('fa-list', t('List view'), () => { view = 'list'; draw(); })
 	};
-	const search = el('input', { type: 'search', placeholder: '搜尋', ariaLabel: '搜尋目前資料夾', oninput: () => draw() });
+	const search = el('input', { type: 'search', placeholder: t('Search'), ariaLabel: t('Search the current folder'), oninput: () => draw() });
 	const group = (...buttons) => el('div', { className: 'ck5-fm-group' }, ...buttons);
-	const toolbar = el('div', { className: 'ck5-fm-toolbar', role: 'toolbar', ariaLabel: '工具列' },
-		group(t.back, t.forward, t.up),
-		group(t.reload, t.home),
-		group(t.upload, t.mkdir),
-		group(t.pick, t.preview, t.download, t.info),
-		group(t.rename, t.cut, t.paste, t.remove),
-		group(t.icons, t.list),
+	const toolbar = el('div', { className: 'ck5-fm-toolbar', role: 'toolbar', ariaLabel: t('Toolbar') },
+		group(tb.back, tb.forward, tb.up),
+		group(tb.reload, tb.home),
+		group(tb.upload, tb.mkdir),
+		group(tb.pick, tb.preview, tb.download, tb.info),
+		group(tb.rename, tb.cut, tb.paste, tb.remove),
+		group(tb.icons, tb.list),
 		el('div', { className: 'ck5-fm-search' }, el('i', { className: 'fa-solid fa-magnifying-glass' }), search));
 
-	const tree = el('nav', { className: 'ck5-fm-tree', ariaLabel: '資料夾' });
+	const tree = el('nav', { className: 'ck5-fm-tree', ariaLabel: t('Folder') });
 	const main = el('div', {
 		className: 'ck5-fm-main', tabIndex: -1,
 		onclick: e => {
@@ -951,7 +956,7 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 	const dialog = el('dialog', { className: 'ck5-browser ck5-fm', ariaLabel: title },
 		el('form', { method: 'dialog', className: 'ck5-browser-header' },
 			el('strong', { textContent: title }),
-			el('button', { textContent: '×', ariaLabel: '關閉' })),
+			el('button', { textContent: '×', ariaLabel: t('Close') })),
 		toolbar,
 		el('div', { className: 'ck5-fm-body' }, tree, main),
 		el('div', { className: 'ck5-fm-statusbar' }, message, summary),
@@ -975,7 +980,7 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 	}
 
 	async function load() {
-		message.textContent = '讀取中…';
+		message.textContent = t('Loading…');
 		show(await request('browse.php'));
 	}
 	// browse.php 的 GET 與各項 POST 動作都回傳目前資料夾的清單
@@ -1013,8 +1018,8 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 				: []));
 		};
 		tree.replaceChildren(el('ul', {},
-			node('image', '', '圖片', 'fa-image'),
-			node('file', '', '檔案', 'fa-paperclip')));
+			node('image', '', t('Images'), 'fa-image'),
+			node('file', '', t('Files'), 'fa-paperclip')));
 	}
 
 	function draw() {
@@ -1033,7 +1038,7 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 					if (e.key === 'Enter') {
 						e.preventDefault();
 						open(entry);
-					} else if (e.key === 'Delete' && !t.remove.disabled) {
+					} else if (e.key === 'Delete' && !tb.remove.disabled) {
 						isSelected(entry) || (selection = [entry]);
 						remove();
 					}
@@ -1050,26 +1055,26 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 			: IMAGE_EXT.test(entry.name)
 				? el('img', { src: entry.file.url, alt: '', loading: 'lazy' })
 				: el('span', { className: 'ck5-fm-icon ck5-fm-ext', textContent: entry.name.split('.').pop().toUpperCase() });
-		const lock = entry => entry.file?.locked ? el('i', { className: 'fa-solid fa-lock ck5-fm-lock', title: '模組附件，請到原本的附件功能管理' }) : '';
+		const lock = entry => entry.file?.locked ? el('i', { className: 'fa-solid fa-lock ck5-fm-lock', title: t('Module attachment. Manage it from its own attachment feature.') }) : '';
 
 		if (!entries.length) {
-			main.replaceChildren(el('p', { className: 'ck5-fm-empty', textContent: q ? '找不到符合的項目' : '這個資料夾是空的，可按「上傳」或把檔案拖進來' }));
+			main.replaceChildren(el('p', { className: 'ck5-fm-empty', textContent: q ? t('No matching items') : t('This folder is empty. Click "Upload" or drag files here.') }));
 		} else if (view === 'icons') {
 			main.replaceChildren(el('div', { className: 'ck5-fm-icons' },
 				...entries.map(entry => item(entry, visual(entry), lock(entry), el('span', { className: 'ck5-fm-name', textContent: entry.name })))));
 		} else {
 			main.replaceChildren(el('table', { className: 'ck5-fm-list' },
-				el('thead', {}, el('tr', {}, ...['名稱', '修改日期', '大小', '類型'].map(text => el('th', { textContent: text })))),
+				el('thead', {}, el('tr', {}, ...[t('Name'), t('Modified'), t('Size'), t('Type')].map(text => el('th', { textContent: text })))),
 				el('tbody', {}, ...entries.map(entry => item(entry,
 					el('td', {}, entry.isDir ? el('i', { className: 'fa-solid fa-folder' }) : el('i', { className: 'fa-regular fa-file' }), ' ', entry.name, lock(entry)),
 					el('td', { textContent: entry.file ? formatTime(entry.file.mtime) : '' }),
 					el('td', { textContent: entry.file ? formatSize(entry.file.size) : '' }),
-					el('td', { textContent: entry.isDir ? '資料夾' : entry.name.split('.').pop().toUpperCase() }))))));
+					el('td', { textContent: entry.isDir ? t('Folder') : entry.name.split('.').pop().toUpperCase() }))))));
 		}
 		const total = res.files.reduce((sum, f) => sum + f.size, 0);
-		summary.textContent = `${TYPE_LABEL[type]}${path ? ` / ${path}` : ''}　項目: ${res.dirs.length + res.files.length}, 總計: ${formatSize(total)}`;
-		t.icons.setAttribute('aria-pressed', String(view === 'icons'));
-		t.list.setAttribute('aria-pressed', String(view === 'list'));
+		summary.textContent = `${typeLabel(type)}${path ? ` / ${path}` : ''}　${t('Items: %0, total: %1', res.dirs.length + res.files.length, formatSize(total))}`;
+		tb.icons.setAttribute('aria-pressed', String(view === 'icons'));
+		tb.list.setAttribute('aria-pressed', String(view === 'list'));
 		markSelected();
 		sync();
 	}
@@ -1096,25 +1101,25 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 			message.textContent = one.file ? `${one.name}（${formatSize(one.file.size)}）` : one.name;
 		} else if (selection.length) {
 			const size = selection.reduce((sum, s) => sum + (s.file?.size || 0), 0);
-			message.textContent = `已選取 ${selection.length} 個項目（檔案共 ${formatSize(size)}）`;
+			message.textContent = t('%0 item(s) selected (files total %1)', selection.length, formatSize(size));
 		} else if (path) {
-			message.textContent = `目前資料夾「${path.split('/').pop()}」：未選取項目時，改名、剪下、刪除、資訊作用於此資料夾`;
+			message.textContent = t('Current folder "%0": with nothing selected, Rename, Cut, Delete and Info apply to this folder', path.split('/').pop());
 		}
 	}
 	// 依目前狀態啟用工具列按鈕
 	function sync() {
 		const one = single();
 		const canEdit = res.can_manage && targets().length > 0 && targets().every(s => !s.file?.locked);
-		t.back.disabled = !back.length;
-		t.forward.disabled = !forward.length;
-		t.up.disabled = !path;
-		t.pick.disabled = !one;
-		t.preview.disabled = !one?.file;
-		t.download.disabled = !selection.some(s => s.file);
-		t.info.disabled = !target();
-		t.rename.disabled = !(canEdit && target());
-		t.cut.disabled = t.remove.disabled = !canEdit;
-		t.paste.disabled = !res.can_manage || !clipboard || clipboard.type !== type;
+		tb.back.disabled = !back.length;
+		tb.forward.disabled = !forward.length;
+		tb.up.disabled = !path;
+		tb.pick.disabled = !one;
+		tb.preview.disabled = !one?.file;
+		tb.download.disabled = !selection.some(s => s.file);
+		tb.info.disabled = !target();
+		tb.rename.disabled = !(canEdit && target());
+		tb.cut.disabled = tb.remove.disabled = !canEdit;
+		tb.paste.disabled = !res.can_manage || !clipboard || clipboard.type !== type;
 	}
 
 	function open(entry) {
@@ -1141,7 +1146,7 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 	}
 
 	async function mkdir() {
-		const name = prompt('新資料夾名稱（中英文、數字、底線、連字號）');
+		const name = prompt(t('New folder name (letters, digits, underscores, hyphens)'));
 		if (name) {
 			show(await request('browse.php', formData({ op: 'mkdir', name })));
 			loadTree();
@@ -1152,7 +1157,7 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 		const entry = target();
 		const { name, isDir } = entry;
 		const stem = isDir ? name : name.replace(/\.[^.]+$/, '');
-		const newName = prompt(`「${name}」的新名稱（中英文、數字、底線、連字號${isDir ? '' : '，副檔名不變'}）\n文章中引用到的網址會一起更新。`, stem);
+		const newName = prompt(`${t(isDir ? 'New name for "%0" (letters, digits, underscores, hyphens)' : 'New name for "%0" (letters, digits, underscores, hyphens; extension unchanged)', name)}\n${t('URLs referenced in articles will be updated too.')}`, stem);
 		if (newName && newName !== stem) {
 			const r = await request('browse.php', formData({ op: 'rename', name, new_name: newName }), at(entry));
 			if (r.error) {
@@ -1168,18 +1173,18 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 	async function paste() {
 		const { names, path: from } = clipboard;
 		if (from === path) {
-			message.textContent = '已經在這個資料夾裡了';
+			message.textContent = t('Already in this folder');
 			return;
 		}
 		const errors = [];
 		for (const name of names) {
 			const r = await request('browse.php', formData({ op: 'move', name, to: path }), { path: from });
-			r.error ? errors.push(`${name}：${r.error.message || r.error}`) : syncEditors(r.replaced || []);
+			r.error ? errors.push(t('%0: %1', name, r.error.message || r.error)) : syncEditors(r.replaced || []);
 		}
 		clipboard = null;
 		await load();
 		loadTree();
-		message.textContent = errors.join('；');
+		message.textContent = errors.join(t('; '));
 	}
 
 	// 刪除前逐一檢查：模組附件不可刪；被文章引用的列出筆數一起確認
@@ -1193,16 +1198,16 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 				return;
 			}
 			if (r.locked) {
-				message.textContent = `「${name}」是模組附件（或資料夾內含模組附件），請到原本的附件功能管理`;
+				message.textContent = t('"%0" is a module attachment (or the folder contains module attachments). Manage it from its own attachment feature.', name);
 				return;
 			}
-			Object.entries(r.refs).forEach(([table, n]) => used.push(`${list.length > 1 ? `${name} → ` : ''}${table}：${n} 筆`));
+			Object.entries(r.refs).forEach(([table, n]) => used.push(`${list.length > 1 ? `${name} → ` : ''}${t('%0: %1 record(s)', table, n)}`));
 		}
-		const label = list.length > 1 ? `這 ${list.length} 個項目` : `「${list[0].name}」`;
-		const scope = list.some(e => e.isDir) ? '資料夾內的所有檔案會一起刪除。' : '';
+		const label = list.length > 1 ? t('these %0 items', list.length) : t('"%0"', list[0].name);
+		const scope = list.some(e => e.isDir) ? t('All files in the folder will be deleted too. ') : '';
 		const text = used.length
-			? `${label}目前被下列資料引用，刪除後這些連結會失效：\n${used.join('\n')}\n\n${scope}確定要刪除嗎？`
-			: `確定刪除${label}？${scope}刪除後無法復原。`;
+			? t('The following data references %0, and these links will break after deletion:\n%1\n\n%2Are you sure you want to delete?', label, used.join('\n'), scope)
+			: t('Delete %0? %1This cannot be undone.', label, scope);
 		if (!confirm(text)) {
 			return;
 		}
@@ -1210,7 +1215,7 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 		let last = null;
 		for (const entry of list) {
 			const r = await request('browse.php', formData({ op: 'delete', name: entry.name }), at(entry));
-			r.error ? errors.push(`${entry.name}：${r.error.message || r.error}`) : (last = r);
+			r.error ? errors.push(t('%0: %1', entry.name, r.error.message || r.error)) : (last = r);
 		}
 		if (last) {
 			path = at(list[0]).path; // 刪的是目前資料夾時，回到上一層
@@ -1219,7 +1224,7 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 			await load();
 		}
 		list.some(e => e.isDir) && loadTree();
-		message.textContent = errors.join('；');
+		message.textContent = errors.join(t('; '));
 	}
 
 	function download() {
@@ -1235,19 +1240,19 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 	async function info() {
 		const entry = target();
 		const { name, isDir, file } = entry;
-		const rows = [['名稱', name], ['類型', isDir ? '資料夾' : name.split('.').pop().toUpperCase()]];
+		const rows = [[t('Name'), name], [t('Type'), isDir ? t('Folder') : name.split('.').pop().toUpperCase()]];
 		if (file) {
-			rows.push(['大小', formatSize(file.size)], ['修改日期', formatTime(file.mtime)], ['網址', file.url]);
+			rows.push([t('Size'), formatSize(file.size)], [t('Modified'), formatTime(file.mtime)], [t('URL'), file.url]);
 		}
 		if (res.can_manage) {
 			const r = await request('browse.php', formData({ op: 'refs', name }), at(entry));
-			const used = Object.entries(r.refs || {}).map(([table, n]) => `${table}：${n} 筆`);
-			rows.push(['被引用', used.length ? used.join('、') : '無'], ['模組附件', r.locked ? '是（不可改名、搬移、刪除）' : '否']);
+			const used = Object.entries(r.refs || {}).map(([table, n]) => t('%0: %1 record(s)', table, n));
+			rows.push([t('Referenced by'), used.length ? used.join(t(', ')) : t('None')], [t('Module attachment'), r.locked ? t('Yes (cannot be renamed, moved or deleted)') : t('No')]);
 		}
-		const box = el('dialog', { className: 'ck5-browser-move', ariaLabel: `${name} 的資訊` },
+		const box = el('dialog', { className: 'ck5-browser-move', ariaLabel: t('Info: %0', name) },
 			el('form', { method: 'dialog' },
 				el('table', { className: 'ck5-fm-info' }, ...rows.map(([k, v]) => el('tr', {}, el('th', { textContent: k }), el('td', { textContent: v })))),
-				el('div', { className: 'ck5-browser-buttons' }, el('button', { value: 'ok', textContent: '關閉' }))));
+				el('div', { className: 'ck5-browser-buttons' }, el('button', { value: 'ok', textContent: t('Close') }))));
 		box.addEventListener('close', () => box.remove());
 		document.body.append(box);
 		box.showModal();
@@ -1257,7 +1262,7 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 		const errors = [];
 		let always = null; // 勾了「其餘同名檔案也這樣處理」時記住選擇
 		for (const [i, file] of files.entries()) {
-			message.textContent = `上傳中 ${i + 1}/${files.length}：${file.name}`;
+			message.textContent = t('Uploading %0/%1: %2', i + 1, files.length, file.name);
 			let r = await request('upload.php', formData({ upload: file, conflict: 'ask' }));
 			if (r.conflict) {
 				let choice = always;
@@ -1270,28 +1275,28 @@ function openBrowser(browseUrl, title, onPick, startType = 'image') {
 				r = await request('upload.php', formData({ upload: file, conflict: choice }));
 			}
 			if (r.error) {
-				errors.push(`${file.name}：${r.error.message || r.error}`);
+				errors.push(t('%0: %1', file.name, r.error.message || r.error));
 			}
 		}
 		await load();
-		message.textContent = errors.join('；');
+		message.textContent = errors.join(t('; '));
 	}
 
 	// 同名檔案：取代（網址不變，文章連結自動指向新檔）／另存新檔（加編號）／略過；回傳 [選擇, 是否套用到其餘]
 	function askConflict({ name, can_replace }, hasMore) {
 		return new Promise(resolve => {
 			const applyAll = el('input', { type: 'checkbox' });
-			const box = el('dialog', { className: 'ck5-browser-move', ariaLabel: '檔名重複' },
+			const box = el('dialog', { className: 'ck5-browser-move', ariaLabel: t('Duplicate file name') },
 				el('form', { method: 'dialog' },
-					el('p', { textContent: `這個資料夾已經有「${name}」。` }),
+					el('p', { textContent: t('This folder already has "%0".', name) }),
 					el('p', { className: 'ck5-browser-hint', textContent: can_replace
-						? '取代：舊檔換成新檔，網址不變，已插入文章的連結會直接顯示新檔（瀏覽器可能要重新整理才看得到）。'
-						: '只有模組管理員可以取代舊檔，模組附件也不可取代。' }),
-					...(hasMore ? [el('label', {}, applyAll, ' 其餘同名檔案也這樣處理')] : []),
+						? t('Replace: the old file is replaced by the new one with the same URL, so links in articles show the new file (the browser may need a refresh).')
+						: t('Only module administrators can replace old files, and module attachments cannot be replaced.') }),
+					...(hasMore ? [el('label', {}, applyAll, ' ', t('Apply to the remaining duplicates'))] : []),
 					el('div', { className: 'ck5-browser-buttons' },
-						el('button', { value: 'skip', textContent: '略過' }),
-						el('button', { value: 'rename', textContent: '另存新檔' }),
-						...(can_replace ? [el('button', { value: 'replace', textContent: '取代舊檔' })] : []))));
+						el('button', { value: 'skip', textContent: t('Skip') }),
+						el('button', { value: 'rename', textContent: t('Save as new file') }),
+						...(can_replace ? [el('button', { value: 'replace', textContent: t('Replace') })] : []))));
 			box.addEventListener('close', () => {
 				box.remove();
 				const choice = box.returnValue || 'skip'; // Esc 視為略過
@@ -1427,12 +1432,14 @@ function PasteRemoteImage(editor) {
 	});
 }
 
-export function createEditor(element, { uploadUrl, browseUrl, placeholder = '', toolbar = 'my', height, plainTextPaste = false, styles = [] } = {}) {
+export function createEditor(element, { uploadUrl, browseUrl, placeholder = '', toolbar = 'my', height, plainTextPaste = false, styles = [], language = document.documentElement.lang } = {}) {
+	// 語系由 CkEditor5.php 依 _LANGCODE 傳入；CKEDITOR.replace 相容層沒傳就看 <html lang>
+	lang = /^zh/i.test(language) ? 'zh' : 'en';
 	return ClassicEditor.create(element, {
 		tad: { browseUrl, plainTextPaste },
 		licenseKey: 'GPL',
-		language: 'zh',
-		translations: [translations],
+		language: lang,
+		translations: lang === 'zh' ? [translations] : [],
 		toolbar: { items: toolbars[toolbar] || toolbars.my, shouldNotGroupWhenFull: true },
 		placeholder,
 		plugins: [
@@ -1453,7 +1460,7 @@ export function createEditor(element, { uploadUrl, browseUrl, placeholder = '', 
 		// 取代 CK4 syntaxhighlight/prism/codesnippet：輸出 <pre><code class="language-xxx">，prism 可直接上色
 		codeBlock: {
 			languages: [
-				{ language: 'plaintext', label: '純文字' },
+				{ language: 'plaintext', label: t('Plain text') },
 				{ language: 'html', label: 'HTML' },
 				{ language: 'css', label: 'CSS' },
 				{ language: 'javascript', label: 'JavaScript' },
@@ -1468,8 +1475,8 @@ export function createEditor(element, { uploadUrl, browseUrl, placeholder = '', 
 		fontSize: { options: fontSizeOptions, supportAllValues: true },
 		heading: {
 			options: [
-				{ model: 'paragraph', title: '段落', class: 'ck-heading_paragraph' },
-				...[1, 2, 3, 4, 5, 6].map(n => ({ model: `heading${n}`, view: `h${n}`, title: `標題 ${n}`, class: `ck-heading_heading${n}` }))
+				{ model: 'paragraph', title: t('Paragraph'), class: 'ck-heading_paragraph' },
+				...[1, 2, 3, 4, 5, 6].map(n => ({ model: `heading${n}`, view: `h${n}`, title: t('Heading %0', n), class: `ck-heading_heading${n}` }))
 			]
 		},
 		pasteFromOffice: { removeStyles: true, removeClasses: true, handleImages: true },
@@ -1486,11 +1493,11 @@ export function createEditor(element, { uploadUrl, browseUrl, placeholder = '', 
 			addTargetToExternalLinks: true,
 			defaultProtocol: 'https://',
 			decorators: {
-				toggleDownloadable: { mode: 'manual', label: '下載', attributes: { download: 'file' } }
+				toggleDownloadable: { mode: 'manual', label: t('Download'), attributes: { download: 'file' } }
 			}
 		},
 		list: { properties: { styles: true, startIndex: true, reversed: true } },
-		style: { definitions: [...styleDefinitions, ...styles] },
+		style: { definitions: [...styleDefinitions(), ...styles] },
 		// 取代 CK4 smiley；表情資料放本站（取自 cdn.ckeditor.com/ckeditor5/data/emoji/16/en.json），不依賴外部 CDN
 		emoji: { definitionsUrl: new URL('emoji-en.json', import.meta.url).href },
 		// 原始碼模式語法高亮（sourceeditingcodemirror.js，CodeMirror 5 選項）

@@ -105,10 +105,10 @@ function ck5_fetch_remote($url, $maxBytes)
 {
     $p = parse_url($url);
     if (empty($p['host']) || !in_array(strtolower($p['scheme'] ?? ''), ['http', 'https'], true)) {
-        ck5_fail('網址格式錯誤');
+        ck5_fail(_MD_CK5_BAD_URL);
     }
     if (!function_exists('curl_init')) {
-        ck5_fail('伺服器未啟用 cURL', 500);
+        ck5_fail(_MD_CK5_NO_CURL, 500);
     }
     $host = trim($p['host'], '[]');
     $ips  = filter_var($host, FILTER_VALIDATE_IP) ? [$host] : array_merge(
@@ -116,11 +116,11 @@ function ck5_fetch_remote($url, $maxBytes)
         array_column(@dns_get_record($host, DNS_AAAA) ?: [], 'ipv6')
     );
     if (!$ips) {
-        ck5_fail('無法解析網址');
+        ck5_fail(_MD_CK5_DNS_FAIL);
     }
     foreach ($ips as $ip) {
         if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
-            ck5_fail('不允許內部網路位址');
+            ck5_fail(_MD_CK5_PRIVATE_IP);
         }
     }
     $port = $p['port'] ?? (strtolower($p['scheme']) === 'https' ? 443 : 80);
@@ -144,7 +144,7 @@ function ck5_fetch_remote($url, $maxBytes)
     $code = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     curl_close($ch);
     if ($ok === false || $code < 200 || $code >= 300 || $data === '') {
-        ck5_fail('外站圖片下載失敗');
+        ck5_fail(_MD_CK5_REMOTE_FAIL);
     }
     return $data;
 }
@@ -153,13 +153,13 @@ ck5_require_same_origin();
 $fallback = date('YmdHis_') . bin2hex(random_bytes(4));
 $dir      = ck5_current_dir(true);
 if ($dir === false) {
-    ck5_fail('路徑錯誤');
+    ck5_fail(_MD_CK5_BAD_PATH);
 }
 
 if (isset($_FILES['upload'])) {
     $file = $_FILES['upload'];
     if ($file['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($file['tmp_name'])) {
-        ck5_fail($file['error'] === UPLOAD_ERR_INI_SIZE ? '檔案超過伺服器上傳大小限制' : '上傳失敗');
+        ck5_fail($file['error'] === UPLOAD_ERR_INI_SIZE ? _MD_CK5_TOO_LARGE : _MD_CK5_UPLOAD_FAIL);
     }
     $base = ck5_clean_name(pathinfo($file['name'], PATHINFO_FILENAME), $fallback);
     // 圖片：副檔名由內容判斷；一般檔案：白名單
@@ -167,11 +167,11 @@ if (isset($_FILES['upload'])) {
     if ($ck5_type === 'file' && !$ext) {
         $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         if ($ext === '' || !in_array($ext, ck5_file_ext(), true)) {
-            ck5_fail('不接受 .' . $ext . ' 檔案');
+            ck5_fail(sprintf(_MD_CK5_BAD_EXT, $ext));
         }
     }
     if (!$ext) {
-        ck5_fail('只接受 JPG、PNG、GIF、WebP、AVIF 圖片');
+        ck5_fail(_MD_CK5_IMAGE_ONLY);
     }
     $name     = "{$base}.{$ext}";
     $conflict = Request::getString('conflict');
@@ -183,14 +183,14 @@ if (isset($_FILES['upload'])) {
         }
         if ($conflict === 'replace') {
             if (!$can_replace) {
-                ck5_fail(ck5_can_manage() ? '這是模組附件，不可覆蓋' : '只有模組管理員可以取代舊檔', 403);
+                ck5_fail(ck5_can_manage() ? _MD_CK5_LOCKED_REPLACE : _MD_CK5_ADMIN_REPLACE, 403);
             }
         } else {
             $name = ck5_unique_name($dir, $base, $ext);
         }
     }
     if (!move_uploaded_file($file['tmp_name'], $dir . $name)) {
-        ck5_fail('存檔失敗', 500);
+        ck5_fail(_MD_CK5_SAVE_FAIL, 500);
     }
 } elseif (($url = Request::getString('url')) !== '') {
     if (ck5_same_site($url)) {
@@ -199,14 +199,14 @@ if (isset($_FILES['upload'])) {
     $data = ck5_fetch_remote($url, 10 * 1024 * 1024);
     $ext  = ck5_image_ext(@getimagesizefromstring($data));
     if (!$ext) {
-        ck5_fail('外站檔案不是支援的圖片');
+        ck5_fail(_MD_CK5_REMOTE_NOT_IMAGE);
     }
     $name = ck5_unique_name($dir, ck5_clean_name(pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_FILENAME), $fallback), $ext);
     if (file_put_contents($dir . $name, $data, LOCK_EX) === false) {
-        ck5_fail('存檔失敗', 500);
+        ck5_fail(_MD_CK5_SAVE_FAIL, 500);
     }
 } else {
-    ck5_fail('沒有收到檔案');
+    ck5_fail(_MD_CK5_NO_FILE);
 }
 
 ck5_resize($dir . $name, $ext);

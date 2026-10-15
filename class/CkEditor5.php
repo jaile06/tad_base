@@ -166,7 +166,8 @@ class CkEditor5
             'toolbar'        => (string) $this->ToolbarSet,
             'plainTextPaste' => !empty($tadtools_config['ck_wcag']) && $this->wcag,
             'styles'         => $styles,
-        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG);
+            'language'       => _LANGCODE,
+        ],JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG);
 
         // textarea 為表單欄位，CK5 送出表單時會自動回寫內容
         $editor .= <<<HTML

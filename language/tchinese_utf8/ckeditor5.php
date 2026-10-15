@@ -1,0 +1,35 @@
+<?php
+// packages/ckeditor5 的 browse.php、upload.php 錯誤訊息（前端介面字串在 packages/ckeditor5/translations/tad-zh.js）
+define('_MD_CK5_ILLEGAL',          '非法調用');
+define('_MD_CK5_LOGIN',            '請先登入');
+define('_MD_CK5_BAD_PARAM',        '參數錯誤');
+define('_MD_CK5_BAD_PATH',         '路徑錯誤');
+define('_MD_CK5_NO_PERM',          '沒有使用此模組的權限');
+define('_MD_CK5_MKDIR_FAIL',       '無法建立資料夾');
+define('_MD_CK5_NOT_FOUND',        '找不到檔案');
+define('_MD_CK5_ADMIN_ONLY',       '只有模組管理員可以改名、搬移、刪除');
+define('_MD_CK5_BAD_NAME',         '名稱只能用中英文、數字、底線、連字號');
+define('_MD_CK5_NAME_EXISTS',      '已有同名的檔案或資料夾');
+define('_MD_CK5_CREATE_FAIL',      '建立失敗');
+define('_MD_CK5_LOCKED',           '這是模組附件（或資料夾內含模組附件），請到原本的附件功能管理');
+define('_MD_CK5_DELETE_FAIL',      '刪除失敗');
+define('_MD_CK5_BAD_DEST',         '目的資料夾錯誤');
+define('_MD_CK5_DEST_MISSING',     '目的資料夾不存在');
+define('_MD_CK5_MOVE_INTO_SELF',   '不能把資料夾搬到它自己裡面');
+define('_MD_CK5_DEST_EXISTS',      '目的地已有同名的檔案或資料夾');
+define('_MD_CK5_OP_FAIL',          '操作失敗');
+define('_MD_CK5_BAD_OP',           '不支援的動作');
+define('_MD_CK5_BAD_URL',          '網址格式錯誤');
+define('_MD_CK5_NO_CURL',          '伺服器未啟用 cURL');
+define('_MD_CK5_DNS_FAIL',         '無法解析網址');
+define('_MD_CK5_PRIVATE_IP',       '不允許內部網路位址');
+define('_MD_CK5_REMOTE_FAIL',      '外站圖片下載失敗');
+define('_MD_CK5_TOO_LARGE',        '檔案超過伺服器上傳大小限制');
+define('_MD_CK5_UPLOAD_FAIL',      '上傳失敗');
+define('_MD_CK5_IMAGE_ONLY',       '只接受 JPG、PNG、GIF、WebP、AVIF 圖片');
+define('_MD_CK5_LOCKED_REPLACE',   '這是模組附件，不可覆蓋');
+define('_MD_CK5_ADMIN_REPLACE',    '只有模組管理員可以取代舊檔');
+define('_MD_CK5_SAVE_FAIL',        '存檔失敗');
+define('_MD_CK5_REMOTE_NOT_IMAGE', '外站檔案不是支援的圖片');
+define('_MD_CK5_NO_FILE',          '沒有收到檔案');
+define('_MD_CK5_BAD_EXT',          '不接受 .%s 檔案');

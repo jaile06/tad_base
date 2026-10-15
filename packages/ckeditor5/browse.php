@@ -18,7 +18,7 @@ $op       = Request::getString('op', '', 'POST');
 if ($op !== '') {
     ck5_require_same_origin();
     if (!in_array($op, ['mkdir', 'tree'], true) && !ck5_can_manage()) {
-        ck5_fail('只有模組管理員可以改名、搬移、刪除', 403);
+        ck5_fail(_MD_CK5_ADMIN_ONLY, 403);
     }
     $name = Request::getString('name', '', 'POST');
     $root = realpath(XOOPS_ROOT_PATH . $ck5_root_rel);
@@ -27,13 +27,13 @@ if ($op !== '') {
         $dir  = ck5_current_dir(true);
         $name = ck5_clean_name($name, '');
         if ($dir === false || $name === '') {
-            ck5_fail('名稱只能用中英文、數字、底線、連字號');
+            ck5_fail(_MD_CK5_BAD_NAME);
         }
         if (file_exists($dir . $name)) {
-            ck5_fail('已有同名的檔案或資料夾');
+            ck5_fail(_MD_CK5_NAME_EXISTS);
         }
         if (!mkdir($dir . $name, 0755)) {
-            ck5_fail('建立失敗', 500);
+            ck5_fail(_MD_CK5_CREATE_FAIL, 500);
         }
     } elseif ($op === 'tree') {
         $dirs = [];
@@ -54,18 +54,18 @@ if ($op !== '') {
             die(json_encode(['refs' => ck5_count_refs($rel), 'locked' => ck5_is_locked($abs)], JSON_UNESCAPED_UNICODE));
         }
         if (ck5_is_locked($abs)) {
-            ck5_fail('這是模組附件（或資料夾內含模組附件），請到原本的附件功能管理');
+            ck5_fail(_MD_CK5_LOCKED);
         }
 
         if ($op === 'delete') {
             if (!ck5_remove($abs)) {
-                ck5_fail('刪除失敗', 500);
+                ck5_fail(_MD_CK5_DELETE_FAIL, 500);
             }
         } elseif ($op === 'rename' || $op === 'move') {
             if ($op === 'rename') {
                 $new_name = ck5_clean_name(Request::getString('new_name', '', 'POST'), '');
                 if ($new_name === '') {
-                    ck5_fail('名稱只能用中英文、數字、底線、連字號');
+                    ck5_fail(_MD_CK5_BAD_NAME);
                 }
                 if (is_file($abs) && ($ext = pathinfo($name, PATHINFO_EXTENSION)) !== '') {
                     $new_name .= ".{$ext}"; // 檔案保留原副檔名
@@ -76,29 +76,29 @@ if ($op !== '') {
                 $to = trim(str_replace('\\', '/', Request::getString('to', '', 'POST')), '/');
                 foreach ($to === '' ? [] : explode('/', $to) as $seg) {
                     if (!ck5_valid_segment($seg)) {
-                        ck5_fail('目的資料夾錯誤');
+                        ck5_fail(_MD_CK5_BAD_DEST);
                     }
                 }
                 $target = $root === false ? false : realpath($root . ($to === '' ? '' : DIRECTORY_SEPARATOR . $to));
                 if ($target === false || !is_dir($target) || ($target !== $root && strpos($target, $root . DIRECTORY_SEPARATOR) !== 0)) {
-                    ck5_fail('目的資料夾不存在');
+                    ck5_fail(_MD_CK5_DEST_MISSING);
                 }
                 if (is_dir($abs) && ($target === $abs || strpos($target, $abs . DIRECTORY_SEPARATOR) === 0)) {
-                    ck5_fail('不能把資料夾搬到它自己裡面');
+                    ck5_fail(_MD_CK5_MOVE_INTO_SELF);
                 }
                 $new_name   = $name;
                 $target_dir = $target . DIRECTORY_SEPARATOR;
                 $new_rel    = $ck5_root_rel . ($to === '' ? '' : "{$to}/") . $new_name;
             }
             if (file_exists($target_dir . $new_name)) {
-                ck5_fail('目的地已有同名的檔案或資料夾');
+                ck5_fail(_MD_CK5_DEST_EXISTS);
             }
             if (!rename($abs, $target_dir . $new_name)) {
-                ck5_fail('操作失敗', 500);
+                ck5_fail(_MD_CK5_OP_FAIL, 500);
             }
             $replaced = ck5_replace_refs($rel, $new_rel . (is_dir($target_dir . $new_name) ? '/' : ''));
         } else {
-            ck5_fail('不支援的動作');
+            ck5_fail(_MD_CK5_BAD_OP);
         }
     }
 }
