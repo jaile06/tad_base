@@ -140,7 +140,7 @@ const fontSizeOptions = ['default', ...[8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 2
 })];
 
 // 對應 CK4 CkEditor::getStyle()（只支援 class，inline style 的項目略過；「語法」改用工具列的 code 按鈕）
-// 徽章保留 CK4 的完整 class，Bootstrap 3、4 佈景也能顯示
+// 新內容只輸出 Bootstrap 5 class；舊文章的 BS3/4 class 由 GeneralHtmlSupport 原樣保留
 const styleDefinitions = [
 	['Info 提示框', 'div', 'alert alert-info'],
 	['Success 提示框', 'div', 'alert alert-success'],
@@ -153,14 +153,8 @@ const styleDefinitions = [
 	['清單「(一)、(二)」', 'ol', 'brackets-tw'],
 	['清單「1.、2.」', 'ol', 'dot-num'],
 	['清單「(1)、(2)」', 'ol', 'brackets-num'],
-	['Secondary 徽章', 'span', 'label label-default badge badge-secondary bg-secondary'],
-	['Primary 徽章', 'span', 'label label-primary badge badge-primary bg-primary'],
-	['Success 徽章', 'span', 'label label-success badge badge-success bg-success'],
-	['Info 徽章', 'span', 'label label-info badge badge-info bg-info'],
-	['Warning 徽章', 'span', 'label label-warning badge badge-warning bg-warning'],
-	['Danger 徽章', 'span', 'label label-danger badge badge-danger bg-danger'],
-	['Light 徽章', 'span', 'label label-default badge badge-light bg-light'],
-	['Dark 徽章', 'span', 'label label-default badge badge-dark bg-dark'],
+	...['secondary', 'primary', 'success', 'info', 'warning', 'danger', 'light', 'dark']
+		.map(c => [`${c[0].toUpperCase()}${c.slice(1)} 徽章`, 'span', `badge text-bg-${c}`]),
 	['按鍵', 'kbd', 'kbd']
 ].map(([name, element, cls]) => ({ name, element, classes: cls.split(' ') }));
 
@@ -189,10 +183,10 @@ function TextDropdowns(editor) {
 // 取代 CK4 widgetbootstrap／widgettemplatemenu：插入同樣的 Bootstrap 多欄 HTML，舊文章的版型也能照常編輯
 // 版型是 widget（同 CK4）：點外框可整組選取、按 Delete 整組刪除，各欄內容可直接編輯
 const PLACEHOLDER = 'https://fakeimg.pl/{size}/?retina=1&font=noto&text=%E6%94%BE%E7%BD%AE%E5%9C%96%E7%89%87';
-const column = (cls, img, text) => `<div class="${cls}">${img ? `<img src="${PLACEHOLDER.replace('{size}', img)}" class="img-responsive img-fluid">` : ''}${text ? `<p>${text}</p>` : ''}</div>`;
-const columns = (n, img) => Array.from({ length: n }, (_, i) => column(`col-sm-${12 / n} span${12 / n} coln-${i + 1}`, img, n === 2 ? '輸入內容' : '輸入文字')).join('');
-const sidebar = column('col-sm-4 span4 col-sidebar', '300x250');
-const main = column('col-sm-8 span8 col-main', '', '輸入內容');
+const column = (cls, img, text) => `<div class="${cls}">${img ? `<img src="${PLACEHOLDER.replace('{size}', img)}" class="img-fluid">` : ''}${text ? `<p>${text}</p>` : ''}</div>`;
+const columns = (n, img) => Array.from({ length: n }, () => column(`col-sm-${12 / n}`, img, n === 2 ? '輸入內容' : '輸入文字')).join('');
+const sidebar = column('col-sm-4', '300x250');
+const main = column('col-sm-8', '', '輸入內容');
 const columnTemplates = [
 	['新增 1:2 雙欄', `<div class="row two-col-left">${sidebar}${main}</div>`],
 	['新增 2:1 雙欄', `<div class="row two-col-right">${main}${sidebar}</div>`],
@@ -260,7 +254,7 @@ function BootstrapTable(editor) {
 		const view = api.mapper.toViewElement(data.item);
 		const table = view?.is('element', 'table') ? view : view && [...view.getChildren()].find(c => c.is('element', 'table'));
 		if (table) {
-			api.writer.addClass(['table', 'table-bordered', 'table-hover', 'table-condensed', 'table-sm'], table);
+			api.writer.addClass(['table', 'table-bordered', 'table-hover', 'table-sm'], table);
 		}
 	}, { priority: 'lowest' }));
 }
