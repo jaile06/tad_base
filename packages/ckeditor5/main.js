@@ -78,7 +78,8 @@ import {
 	IconImage,
 	IconLink,
 	findAttributeRange,
-	plainTextToHtml
+	plainTextToHtml,
+	uid
 } from './ckeditor5.js';
 
 import translations from './translations/zh.js';
@@ -313,6 +314,62 @@ function TextShadowStyle(editor) {
 // 「語法」（行內 code）不放工具列：Ctrl+E（同 Notion），或 Autoformat 打 `文字`
 function CodeShortcut(editor) {
 	editor.keystrokes.set('Ctrl+E', 'code');
+}
+
+// 同 CK4：選 h2／h3／div／ol 的區塊樣式時，先把段落、標題轉成該元素並換掉原本的區塊樣式，再套用
+// CK5 原本只能套在「已經是該元素」的區塊上，在一般段落時整排反灰
+// ponytail: 選多段時每段各自轉換（div 提示框會變成多個），CK4 是包成一個 div
+const SWITCH_TARGET = { h2: 'heading2', h3: 'heading3', div: 'htmlDivParagraph', ol: 'paragraph' };
+const SWITCHABLE = ['paragraph', 'htmlDivParagraph', ...[1, 2, 3, 4, 5, 6].map(n => `heading${n}`)];
+function BlockStyleSwitch(editor) {
+	editor.on('ready', () => {
+		const command = editor.commands.get('style');
+		const defs = editor.config.get('style.definitions').filter(d => SWITCH_TARGET[d.element]);
+		const names = defs.map(d => d.name);
+		const blocks = () => [...editor.model.document.selection.getSelectedBlocks()];
+		const switchable = () => {
+			const list = blocks();
+			return list.length > 0 && list.every(b => SWITCHABLE.includes(b.name));
+		};
+		let busy = false;
+		command.on('set:enabledStyles', (evt, prop, value) => {
+			if (switchable()) {
+				evt.return = [...new Set([...value, ...names])].sort();
+			}
+		});
+		command.on('execute', (evt, [{ styleName, forceValue } = {}]) => {
+			const def = defs.find(d => d.name === styleName);
+			const active = command.value;
+			if (busy || !def || forceValue === false || active.includes(styleName)) {
+				return;
+			}
+			evt.stop();
+			busy = true;
+			const target = SWITCH_TARGET[def.element];
+			const isOl = def.element === 'ol';
+			editor.model.change(writer => {
+				for (const block of blocks()) {
+					const inList = block.hasAttribute('listItemId');
+					if (block.name === target && (isOl ? block.getAttribute('listType') === 'numbered' : !inList)) {
+						continue;
+					}
+					// 換元素時一併拿掉清單與舊元素的 class／style（舊樣式也在裡面）
+					for (const [key] of [...block.getAttributes()]) {
+						if (/^(list\w*|html\w*Attributes)$/.test(key)) {
+							writer.removeAttribute(key, block);
+						}
+					}
+					block.name !== target && writer.rename(block, target);
+					isOl && writer.setAttributes({ listItemId: uid(), listType: 'numbered', listIndent: 0 }, block);
+				}
+				names.filter(n => n !== styleName && active.includes(n))
+					.forEach(n => editor.execute('style', { styleName: n, forceValue: false }));
+				editor.execute('style', { styleName, forceValue: true });
+			});
+			busy = false;
+		}, { priority: 'high' });
+		command.refresh();
+	});
 }
 
 function ColumnTemplates(editor) {
@@ -1439,7 +1496,8 @@ export function createEditor(element, { uploadUrl, browseUrl, placeholder = '', 
 		tad: { browseUrl, plainTextPaste },
 		licenseKey: 'GPL',
 		language: lang,
-		translations: lang === 'zh' ? [translations] : [],
+		// 英文不能傳 []：CK5 對陣列 reduce 沒給初始值會丟錯
+		translations: lang === 'zh' ? [translations] : undefined,
 		toolbar: { items: toolbars[toolbar] || toolbars.my, shouldNotGroupWhenFull: true },
 		placeholder,
 		plugins: [
@@ -1453,7 +1511,7 @@ export function createEditor(element, { uploadUrl, browseUrl, placeholder = '', 
 			TableCellProperties, TableColumnResize, TableLayout, TableProperties, TableToolbar, TextTransformation,
 			TodoList, Underline, WordCount, PageBreak,
 			BootstrapTable, ImageDialog, LinkDialog, PasteRemoteImage, PlainTextPaste, SourceEditingCodeMirror, CodeBlockHighlight, FontAwesome, TextDropdowns, ColumnWidget, ColumnTemplates, CleanLegacyHtml,
-			TextShadowStyle, CodeShortcut
+			TextShadowStyle, CodeShortcut, BlockStyleSwitch
 		],
 		// 取代 CK4 embed/embedsemantic：直接輸出 iframe，前台不需額外 JS
 		mediaEmbed: { previewsInData: true },
